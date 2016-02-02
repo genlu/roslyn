@@ -111,6 +111,17 @@
           "lib/dotnet/System.Collections.Immutable.dll": {}
         }
       },
+      "System.Console/4.0.0-rc3-23729": {
+        "frameworkAssemblies": [
+          "mscorlib"
+        ],
+        "compile": {
+          "ref/net46/System.Console.dll": {}
+        },
+        "runtime": {
+          "lib/net46/System.Console.dll": {}
+        }
+      },
       "System.Diagnostics.Debug/4.0.10": {
         "compile": {
           "ref/net46/_._": {}
@@ -419,6 +430,14 @@
           "lib/net40/Moq.dll": {}
         }
       },
+      "runtime.win7.System.Console/4.0.0-rc3-23729": {
+        "compile": {
+          "ref/dotnet/_._": {}
+        },
+        "runtime": {
+          "runtimes/win7/lib/net/_._": {}
+        }
+      },
       "System.AppContext/4.0.0": {
         "dependencies": {
           "System.Runtime": "[4.0.0, )"
@@ -457,6 +476,17 @@
         },
         "runtime": {
           "lib/dotnet/System.Collections.Immutable.dll": {}
+        }
+      },
+      "System.Console/4.0.0-rc3-23729": {
+        "frameworkAssemblies": [
+          "mscorlib"
+        ],
+        "compile": {
+          "ref/net46/System.Console.dll": {}
+        },
+        "runtime": {
+          "lib/net46/System.Console.dll": {}
         }
       },
       "System.Diagnostics.Debug/4.0.10": {
@@ -902,6 +932,21 @@
         "package/services/metadata/core-properties/98e2d674c8ec4e5fbda07a9e01280647.psmdcp"
       ]
     },
+    "runtime.win7.System.Console/4.0.0-rc3-23729": {
+      "sha512": "/WmilQksQxoYXa2KBexAMTjbO/r6rjCFBZjKoE13fN0fX440AlA4H3Ls+tRj/jEh2vohh2nthG07UUArUY3x/Q==",
+      "type": "Package",
+      "files": [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "dotnet_library_license.txt",
+        "package/services/metadata/core-properties/c0a0d3e53942401dbd5ced0619bfd6c7.psmdcp",
+        "ref/dotnet/_._",
+        "runtime.win7.System.Console.nuspec",
+        "runtimes/win7/lib/dotnet5.4/System.Console.dll",
+        "runtimes/win7/lib/net/_._",
+        "ThirdPartyNotices.txt"
+      ]
+    },
     "System.AppContext/4.0.0": {
       "sha512": "gUoYgAWDC3+xhKeU5KSLbYDhTdBYk9GssrMSCcWUADzOglW+s0AmwVhOUGt2tL5xUl7ZXoYTPdA88zCgKrlG0A==",
       "type": "Package",
@@ -981,6 +1026,40 @@
         "lib/portable-net45+win8+wp8+wpa81/System.Collections.Immutable.xml",
         "package/services/metadata/core-properties/a02fdeabe1114a24bba55860b8703852.psmdcp",
         "System.Collections.Immutable.nuspec"
+      ]
+    },
+    "System.Console/4.0.0-rc3-23729": {
+      "sha512": "MUzU8IAx2PSJySy7cmb5OKsxH5vvlyK/t6jut6m6eLm5TB2A1INSEYVYfC2wpXqywBV2pZ8UbGJNAfYd1DWqfw==",
+      "type": "Package",
+      "files": [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "dotnet_library_license.txt",
+        "lib/MonoAndroid10/_._",
+        "lib/MonoTouch10/_._",
+        "lib/net46/System.Console.dll",
+        "lib/xamarinios10/_._",
+        "lib/xamarinmac20/_._",
+        "package/services/metadata/core-properties/4d7c7e78eaef431b9eb074cb9020c3f7.psmdcp",
+        "ref/dotnet5.4/de/System.Console.xml",
+        "ref/dotnet5.4/es/System.Console.xml",
+        "ref/dotnet5.4/fr/System.Console.xml",
+        "ref/dotnet5.4/it/System.Console.xml",
+        "ref/dotnet5.4/ja/System.Console.xml",
+        "ref/dotnet5.4/ko/System.Console.xml",
+        "ref/dotnet5.4/ru/System.Console.xml",
+        "ref/dotnet5.4/System.Console.dll",
+        "ref/dotnet5.4/System.Console.xml",
+        "ref/dotnet5.4/zh-hans/System.Console.xml",
+        "ref/dotnet5.4/zh-hant/System.Console.xml",
+        "ref/MonoAndroid10/_._",
+        "ref/MonoTouch10/_._",
+        "ref/net46/System.Console.dll",
+        "ref/xamarinios10/_._",
+        "ref/xamarinmac20/_._",
+        "runtime.json",
+        "System.Console.nuspec",
+        "ThirdPartyNotices.txt"
       ]
     },
     "System.Diagnostics.Debug/4.0.10": {

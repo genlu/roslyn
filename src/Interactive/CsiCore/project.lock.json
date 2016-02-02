@@ -214,7 +214,7 @@
           "lib/dotnet/System.ComponentModel.EventBasedAsync.dll": {}
         }
       },
-      "System.Console/4.0.0-beta-23504": {
+      "System.Console/4.0.0-rc3-23729": {
         "dependencies": {
           "System.IO": "[4.0.0, )",
           "System.Runtime": "[4.0.0, )"
@@ -1579,7 +1579,7 @@
           "lib/dotnet5.4/System.Collections.NonGeneric.dll": {}
         }
       },
-      "System.Console/4.0.0-beta-23504": {
+      "System.Console/4.0.0-rc3-23729": {
         "dependencies": {
           "System.IO": "[4.0.0, )",
           "System.Runtime": "[4.0.0, )"
@@ -2975,7 +2975,7 @@
           "lib/dotnet5.4/System.Collections.NonGeneric.dll": {}
         }
       },
-      "System.Console/4.0.0-beta-23504": {
+      "System.Console/4.0.0-rc3-23729": {
         "dependencies": {
           "System.IO": "[4.0.0, )",
           "System.Runtime": "[4.0.0, )"
@@ -4484,7 +4484,7 @@
           "lib/dotnet5.4/System.ComponentModel.EventBasedAsync.dll": {}
         }
       },
-      "System.Console/4.0.0-beta-23504": {
+      "System.Console/4.0.0-rc3-23729": {
         "dependencies": {
           "System.IO": "[4.0.0, )",
           "System.Runtime": "[4.0.0, )"
@@ -6846,18 +6846,19 @@
         "System.ComponentModel.EventBasedAsync.nuspec"
       ]
     },
-    "System.Console/4.0.0-beta-23504": {
-      "sha512": "fuAquEM/2DrY8axtMIbEw1Qk8oX2WCPyd2ws2W0u7PDWlxtFMuFSI4rAOW2hs/S5aGsl5qcpJ2A8ELJW0c/JOw==",
+    "System.Console/4.0.0-rc3-23729": {
+      "sha512": "MUzU8IAx2PSJySy7cmb5OKsxH5vvlyK/t6jut6m6eLm5TB2A1INSEYVYfC2wpXqywBV2pZ8UbGJNAfYd1DWqfw==",
       "type": "Package",
       "files": [
         "[Content_Types].xml",
         "_rels/.rels",
+        "dotnet_library_license.txt",
         "lib/MonoAndroid10/_._",
         "lib/MonoTouch10/_._",
         "lib/net46/System.Console.dll",
         "lib/xamarinios10/_._",
         "lib/xamarinmac20/_._",
-        "package/services/metadata/core-properties/4a16c67be0194dcebe2afc07cd929640.psmdcp",
+        "package/services/metadata/core-properties/4d7c7e78eaef431b9eb074cb9020c3f7.psmdcp",
         "ref/dotnet5.4/de/System.Console.xml",
         "ref/dotnet5.4/es/System.Console.xml",
         "ref/dotnet5.4/fr/System.Console.xml",
@@ -6875,7 +6876,8 @@
         "ref/xamarinios10/_._",
         "ref/xamarinmac20/_._",
         "runtime.json",
-        "System.Console.nuspec"
+        "System.Console.nuspec",
+        "ThirdPartyNotices.txt"
       ]
     },
     "System.Diagnostics.Contracts/4.0.1-beta-23504": {
@@ -9879,7 +9881,7 @@
       "System.AppContext >= 4.0.1-beta-23504",
       "System.Collections >= 4.0.11-beta-23504",
       "System.Collections.Immutable >= 1.1.38-beta-23504",
-      "System.Console >= 4.0.0-beta-23504",
+      "System.Console >= 4.0.0-rc3-23729",
       "System.Diagnostics.Debug >= 4.0.11-beta-23504",
       "System.Diagnostics.FileVersionInfo >= 4.0.0-beta-23504",
       "System.Diagnostics.Process >= 4.1.0-beta-23504",

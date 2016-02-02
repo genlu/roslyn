@@ -72,6 +72,9 @@
     <Import Project="..\..\..\build\Targets\VSL.Imports.targets" />
     <Import Project="..\..\..\build\Targets\Roslyn.Toolsets.Xunit.targets" />
   </ImportGroup>
+  <PropertyGroup>
+    <NuGetTargetMoniker>.NETPlatform,Version=v5.4</NuGetTargetMoniker>
+  </PropertyGroup>
   <ProjectExtensions>
     <VisualStudio>
       <UserProperties project_1json__JSONSchema="http://json.schemastore.org/launchsettings" />
