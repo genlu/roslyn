@@ -76,6 +76,7 @@
     <Compile Include="Hosting\CommandLine\CommandLineScriptGlobals.cs" />
     <Compile Include="Hosting\CommandLine\CommandLineRunner.cs" />
     <Compile Include="Hosting\CommandLine\ConsoleIO.cs" />
+    <Compile Include="Hosting\CommandLine\ConsoleLineReader.cs" />
     <Compile Include="Hosting\CommandLine\NotImplementedAnalyzerLoader.cs" />
     <Compile Include="Hosting\InteractiveScriptGlobals.cs" />
     <Compile Include="Hosting\ObjectFormatter\CommonObjectFormatter.BuilderOptions.cs" />

@@ -199,11 +199,13 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 _console.Out.Write("> ");
                 var input = new StringBuilder();
                 string line;
+                bool firstSubmissionLine = true;
                 bool cancelSubmission = false;
 
                 while (true)
                 {
-                    line = _console.In.ReadLine();
+                    string prompt = firstSubmissionLine ? "> " : ". ";
+                    line = _console.ReadLine(prompt);
                     if (line == null)
                     {
                         if (input.Length == 0)
@@ -223,7 +225,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                         break;
                     }
 
-                    _console.Out.Write(". ");
+                    firstSubmissionLine = false;
                 }
 
                 if (cancelSubmission)

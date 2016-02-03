@@ -14,6 +14,8 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
         public TextWriter Out { get; }
         public TextReader In { get; }
 
+        private readonly LineReader _lineReader;
+
         public ConsoleIO(TextWriter output, TextWriter error, TextReader input)
         {
             Debug.Assert(output != null);
@@ -22,6 +24,8 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
             Out = output;
             Error = error;
             In = input;
+
+            _lineReader = new LineReader(this);
         }
 
         public virtual ConsoleColor ForegroundColor
@@ -31,6 +35,16 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 ConsoleShims.ForegroundColor = value;
             }
         }
+
+        public virtual string ReadLine(string prompt) => _lineReader.ReadLine(prompt);
+
+        public virtual int CursorTop => ConsoleShims.CursorTop;
+
+        public virtual int BufferWidth => ConsoleShims.BufferWidth;
+
+        public virtual ConsoleKeyInfo ReadKey(bool intercept) => ConsoleShims.ReadKey(intercept);
+
+        public virtual void SetCursorPosition(int left, int top) => ConsoleShims.SetCursorPosition(left, top);        
 
         public virtual void ResetColor() => ConsoleShims.ResetColor();
     }

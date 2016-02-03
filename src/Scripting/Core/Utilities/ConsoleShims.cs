@@ -40,6 +40,11 @@ namespace Microsoft.CodeAnalysis.Scripting
         private static readonly PropertyInfo s_OutProperty = s_ConsoleType.GetTypeInfo().GetDeclaredProperty("Out");
         private static readonly PropertyInfo s_InProperty = s_ConsoleType.GetTypeInfo().GetDeclaredProperty("In");
         private static readonly PropertyInfo s_ErrorProperty = s_ConsoleType.GetTypeInfo().GetDeclaredProperty("Error");
+        private static readonly PropertyInfo s_CursorTopProperty = s_ConsoleType.GetTypeInfo().GetDeclaredProperty("CursorTop");
+        private static readonly PropertyInfo s_BufferWidthProperty = s_ConsoleType.GetTypeInfo().GetDeclaredProperty("BufferWidth");
+
+        private static readonly Func<bool, ConsoleKeyInfo> s_ReadKey = s_ConsoleType.GetTypeInfo().GetDeclaredMethod("ReadKey", typeof(bool)).CreateDelegate<Func<bool, ConsoleKeyInfo>>();
+        private static readonly Action<int, int> s_SetCursorPosition = s_ConsoleType.GetTypeInfo().GetDeclaredMethod("SetCursorPosition").CreateDelegate<Action<int, int>>();
         private static readonly Action s_resetColor = s_ConsoleType.GetTypeInfo().GetDeclaredMethod("ResetColor").CreateDelegate<Action>();
 
         public static ConsoleColor ForegroundColor
@@ -53,6 +58,10 @@ namespace Microsoft.CodeAnalysis.Scripting
         public static TextReader In => (TextReader)s_InProperty.GetValue(null);
         public static TextWriter Out => (TextWriter)s_OutProperty.GetValue(null);
         public static TextWriter Error => (TextWriter)s_ErrorProperty.GetValue(null);
+        public static int CursorTop => (int)s_CursorTopProperty.GetValue(null);
+        public static int BufferWidth => (int)s_BufferWidthProperty.GetValue(null);
+        public static ConsoleKeyInfo ReadKey(bool intercept) => s_ReadKey(intercept);
+        public static void SetCursorPosition(int left, int top) => s_SetCursorPosition(left, top);
         public static void ResetColor() => s_resetColor();
     }
 }
