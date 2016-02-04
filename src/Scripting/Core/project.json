@@ -1,6 +1,6 @@
 ﻿{
   "dependencies": {
-    "Microsoft.NETCore.Portable.Compatibility": "1.0.1-beta-23504",
+    "Microsoft.NETCore.Portable.Compatibility": "1.0.1-rc3-23802",
     "System.AppContext": "4.0.0",
     "System.Collections": "4.0.10",
     "System.Collections.Immutable": "1.1.37",
@@ -8,7 +8,7 @@
     "System.Diagnostics.Debug": "4.0.10",
     "System.Diagnostics.StackTrace": "4.0.0",
     "System.Diagnostics.Tools": "4.0.0",
-    "System.Globalization": "4.0.10",
+    "System.Globalization": "4.0.11-rc3-23729",
     "System.IO": "4.0.10",
     "System.IO.FileSystem": "4.0.0",
     "System.Linq": "4.0.0",
