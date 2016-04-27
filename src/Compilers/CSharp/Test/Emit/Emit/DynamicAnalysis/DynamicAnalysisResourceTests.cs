@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.Runtime
             return payload;
         }
 
-        public static void FlushPayload()
+        public static void FlushPayload(byte[] payloadInfoBytes)
         {
         }
     }

@@ -2558,8 +2558,9 @@ namespace Microsoft.CodeAnalysis
                 (byte)(MemberFlags.Method | MemberFlags.Static),                                                            // Flags
                 (byte)WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation,                                         // DeclaringTypeId
                 0,                                                                                                          // Arity
-                    0,                                                                                                      // Method Signature
+                    1,                                                                                                      // Method Signature
                     (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,
+                    (byte)SignatureTypeCode.SZArray, (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Byte,
             };
 
             string[] allNames = new string[(int)WellKnownMember.Count]

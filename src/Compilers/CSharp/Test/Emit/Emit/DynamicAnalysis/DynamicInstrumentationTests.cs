@@ -33,7 +33,7 @@ namespace Microsoft.CodeAnalysis.Runtime
             return _payloads[methodIndex];
         }
 
-        public static void FlushPayload()
+        public static void FlushPayload(byte[] payloadInfoBytes)
         {
             Console.WriteLine(""Flushing"");
             if (_payloads == null)
@@ -69,7 +69,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -233,7 +233,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -326,7 +326,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
     
     static void TestMain()
@@ -384,7 +384,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -451,7 +451,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -520,7 +520,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -670,7 +670,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
@@ -726,7 +726,7 @@ public class Program
     public static void Main(string[] args)
     {
         TestMain();
-        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload();
+        Microsoft.CodeAnalysis.Runtime.Instrumentation.FlushPayload(null);
     }
 
     static void TestMain()
