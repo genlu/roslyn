@@ -64,7 +64,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             !this.ReceiverOpt.SuppressVirtualCalls;
 
         ImmutableArray<IArgument> IHasArgumentsExpression.ArgumentsInEvaluationOrder
-            => DeriveArguments(this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Method.Parameters, this.Syntax);
+            => DeriveArguments(this.Method, this.Method, this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Method.Parameters, this.Expanded,  this.Syntax);
 
         protected override OperationKind ExpressionKind => OperationKind.InvocationExpression;
 
@@ -83,8 +83,44 @@ namespace Microsoft.CodeAnalysis.CSharp
         //       the contract of `ArgumentsInEvaluationOrder` plus it doesn't handle various scenarios correctly even for parameter order, 
         //       e.g. default arguments, erroneous code, etc. 
         //       https://github.com/dotnet/roslyn/issues/18549
-        internal static ImmutableArray<IArgument> DeriveArguments(ImmutableArray<BoundExpression> boundArguments, ImmutableArray<string> argumentNamesOpt, ImmutableArray<int> argumentsToParametersOpt, ImmutableArray<RefKind> argumentRefKindsOpt, ImmutableArray<Symbols.ParameterSymbol> parameters, SyntaxNode invocationSyntax)
+        internal static ImmutableArray<IArgument> DeriveArguments(
+            Symbol methodOrIndexer,
+            MethodSymbol optionalParametersMethod,
+            ImmutableArray<BoundExpression> boundArguments, 
+            ImmutableArray<string> argumentNamesOpt, 
+            ImmutableArray<int> argumentsToParametersOpt, 
+            ImmutableArray<RefKind> argumentRefKindsOpt, 
+            ImmutableArray<Symbols.ParameterSymbol> parameters, 
+            bool expanded,
+            SyntaxNode invocationSyntax)
         {
+            var diagnosticBag = new DiagnosticBag();
+            var factory = new SyntheticBoundNodeFactory(invocationSyntax, diagnosticBag);
+            var localRewriter = new LocalRewriter(
+                                    compilation: null,
+                                    containingMethod: null,
+                                    containingMethodOrdinal: 0,
+                                    rootStatement: null,
+                                    containingType: null,
+                                    factory: factory,
+                                    previousSubmissionFields: null,
+                                    allowOmissionOfConditionalCalls: false,
+                                    diagnostics: diagnosticBag,
+                                    instrumenter: null,
+                                    inOperationContext: true);
+
+            ImmutableArray<Symbols.LocalSymbol> temporaries;
+
+            var derivedArguments = localRewriter.MakeArguments(
+                syntax: invocationSyntax,
+                rewrittenArguments: boundArguments,
+                methodOrIndexer: methodOrIndexer,
+                optionalParametersMethod: optionalParametersMethod,
+                expanded: expanded,
+                argsToParamsOpt: argumentsToParametersOpt,
+                argumentRefKindsOpt: ref argumentRefKindsOpt,
+                temps: out temporaries);
+
             ArrayBuilder<IArgument> arguments = ArrayBuilder<IArgument>.GetInstance(boundArguments.Length);
             for (int parameterIndex = 0; parameterIndex < parameters.Length; parameterIndex++)
             {
@@ -360,7 +396,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         ISymbol IMemberReferenceExpression.Member => this.Indexer;
 
-        ImmutableArray<IArgument> IHasArgumentsExpression.ArgumentsInEvaluationOrder => BoundCall.DeriveArguments(this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Indexer.Parameters, this.Syntax);
+        ImmutableArray<IArgument> IHasArgumentsExpression.ArgumentsInEvaluationOrder 
+            => BoundCall.DeriveArguments(this.Indexer, this.Indexer.GetOwnOrInheritedGetMethod(),this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Indexer.Parameters, this.Expanded, this.Syntax);
 
         protected override OperationKind ExpressionKind => OperationKind.IndexedPropertyReferenceExpression;
 
@@ -516,7 +553,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         IMethodSymbol IObjectCreationExpression.Constructor => this.Constructor;
 
-        ImmutableArray<IArgument> IHasArgumentsExpression.ArgumentsInEvaluationOrder => BoundCall.DeriveArguments(this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Constructor.Parameters, this.Syntax);
+        ImmutableArray<IArgument> IHasArgumentsExpression.ArgumentsInEvaluationOrder 
+            => BoundCall.DeriveArguments(this.Constructor, this.Constructor, this.Arguments, this.ArgumentNamesOpt, this.ArgsToParamsOpt, this.ArgumentRefKindsOpt, this.Constructor.Parameters, this.Expanded, this.Syntax);
 
         ImmutableArray<ISymbolInitializer> IObjectCreationExpression.MemberInitializers
         {

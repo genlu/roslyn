@@ -168,7 +168,7 @@ IInvocationExpression (static void P.M2([System.Int32 x = 1], [System.Int32 y = 
             VerifyOperationTreeAndDiagnosticsForTest<InvocationExpressionSyntax>(source, expectedOperationTree, expectedDiagnostics);
         }
 
-        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/18549")]
+        [Fact]
         public void NamedAndPositionalArgumentsWithDefaultValue()
         {
             string source = @"

@@ -358,7 +358,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// itself. <paramref name="optionalParametersMethod"/> is needed for indexers since getter and setter
         /// may have distinct optional parameter values.
         /// </summary>
-        private ImmutableArray<BoundExpression> MakeArguments(
+        internal ImmutableArray<BoundExpression> MakeArguments(
             SyntaxNode syntax,
             ImmutableArray<BoundExpression> rewrittenArguments,
             Symbol methodOrIndexer,
@@ -1030,10 +1030,17 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 // We have something like M(double x = 1.23), so replace the argument with 1.23.
 
-                TypeSymbol constantType = _compilation.GetSpecialType(defaultConstantValue.SpecialType);
-                defaultValue = MakeLiteral(syntax, defaultConstantValue, constantType);
-                // The parameter type might not match the constant type.
-                defaultValue = MakeConversionNode(defaultValue, parameterType, @checked: false, acceptFailingConversion: true);
+                if (_inOperationContext)
+                {
+                    defaultValue = MakeLiteral(syntax, defaultConstantValue, parameterType);
+                }
+                else
+                {
+                    TypeSymbol constantType = _compilation.GetSpecialType(defaultConstantValue.SpecialType);
+                    defaultValue = MakeLiteral(syntax, defaultConstantValue, constantType);
+                    // The parameter type might not match the constant type.
+                    defaultValue = MakeConversionNode(defaultValue, parameterType, @checked: false, acceptFailingConversion: true);
+                }
             }
 
             return defaultValue;
