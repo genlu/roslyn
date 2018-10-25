@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -49,6 +51,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         private string _intermediateOutputFilePath;
         private string _outputFilePath;
         private string _outputRefFilePath;
+        private string _defaultNamespace;
 
         private readonly Dictionary<string, List<MetadataReferenceProperties>> _allMetadataReferences = new Dictionary<string, List<MetadataReferenceProperties>>();
 
@@ -106,7 +109,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             _additionalFiles = new BatchingDocumentCollection(this, (s, d) => s.ContainsAdditionalDocument(d), (w, d) => w.OnAdditionalDocumentAdded(d), (w, documentId) => w.OnAdditionalDocumentRemoved(documentId));
         }
 
-
         private void ChangeProjectProperty<T>(ref T field, T newValue, Func<Solution, Solution> withNewValue, Action<Workspace> changeValue)
         {
             lock (_gate)
@@ -153,6 +155,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 ChangeProjectProperty(ref field, newValue, withNewValue, changeValue);
             }
         }
+
         public string AssemblyName
         {
             get => _assemblyName;
@@ -247,6 +250,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                        w => w.OnHasAllInformationChanged(Id, value));
         }
 
+        internal string DefaultNamespace
+        {
+            get => _defaultNamespace;
+            set => ChangeProjectProperty(ref _defaultNamespace,
+                       value,
+                       s => s.WithProjectDefaultNamespace(Id, value),
+                       w => w.OnDefaultNamespaceChanged(Id, value));
+        }
 
         #region Batching
 

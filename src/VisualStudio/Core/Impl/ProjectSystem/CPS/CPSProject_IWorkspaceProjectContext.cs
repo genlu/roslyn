@@ -123,9 +123,20 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.C
             }
         }
 
+        public string DefaultNamespace
+        {
+            get => _visualStudioProject.DefaultNamespace;
+            private set => _visualStudioProject.DefaultNamespace = value;
+        }
+
         public void SetProperty(string name, object value)
         {
-            // TODO
+            if (string.Equals(name, AdditionalPropertyNames.DefaultNamespace, StringComparison.OrdinalIgnoreCase) 
+                && _visualStudioProject.Language == LanguageNames.CSharp
+                && value is string defaultNamespace)
+            {
+                DefaultNamespace = defaultNamespace;
+            }
         }
 
         public void AddMetadataReference(string referencePath, MetadataReferenceProperties properties)
