@@ -46,7 +46,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion
                 new TupleNameCompletionProvider(),
                 new DeclarationNameCompletionProvider(),
                 new InternalsVisibleToCompletionProvider(),
-                new PropertySubpatternCompletionProvider()
+                new PropertySubpatternCompletionProvider(),
+                new TypeImportCompletionProvider()
             );
 
         private readonly Workspace _workspace;
