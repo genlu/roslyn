@@ -2,8 +2,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
@@ -364,6 +366,61 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 
             return false;
+        }
+
+        public ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(CSharpCompilation compilation)
+        {
+            var builder = ArrayBuilder<TypeDeclarationInfo>.GetInstance();
+            var root = GetMergedRoot(compilation);
+            VisitDeclaration(root, string.Empty, builder);
+            return builder.ToImmutableAndFree();
+        }
+
+        private static void VisitDeclaration(Declaration declaration, string currentNamaspace, ArrayBuilder<TypeDeclarationInfo> builder)
+        {
+            switch (declaration.Kind)
+            {
+                case DeclarationKind.Namespace:
+                    currentNamaspace = ConcatNamespace(currentNamaspace, declaration.Name);
+                    foreach (var child in declaration.Children)
+                    {
+                        VisitDeclaration(child, currentNamaspace, builder);
+                    }
+                    break;
+                case DeclarationKind.Interface:
+                case DeclarationKind.Class:
+                case DeclarationKind.ImplicitClass:
+                case DeclarationKind.Struct:
+                case DeclarationKind.Delegate:
+                case DeclarationKind.Enum:
+                    builder.Add(HandleTypeDeclaration());
+                    break;
+            }
+
+            TypeDeclarationInfo HandleTypeDeclaration()
+            {
+                SingleTypeDeclaration singleDecl = declaration as SingleTypeDeclaration;
+                if (singleDecl == null)
+                {
+                    singleDecl = (declaration as MergedTypeDeclaration).Declarations[0];
+                }
+
+                var typeKind = singleDecl.Kind.ToTypeKind();
+                var accessibility = ModifierUtils.EffectiveAccessibility(singleDecl.Modifiers);
+
+                return new TypeDeclarationInfo(singleDecl.Name, currentNamaspace, typeKind, accessibility, singleDecl.Arity);
+            }
+
+            string ConcatNamespace(string prefix, string name)
+            {
+                Debug.Assert(prefix != null && name != null);
+                if (prefix.Length == 0)
+                {
+                    return name;
+                }
+
+                return prefix + "." + name;
+            }
         }
     }
 }

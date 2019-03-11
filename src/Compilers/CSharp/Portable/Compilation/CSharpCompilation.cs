@@ -3247,6 +3247,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        internal override ImmutableArray<TypeDeclarationInfo> TypeDeclarationInfos
+        {
+            get
+            {
+                return Declarations.GetTypeDeclarationInfos(this);
+            }
+        }
+
         private abstract class AbstractSymbolSearcher
         {
             private readonly PooledDictionary<Declaration, NamespaceOrTypeSymbol> _cache;

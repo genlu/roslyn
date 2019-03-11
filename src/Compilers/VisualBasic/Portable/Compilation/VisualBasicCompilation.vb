@@ -300,6 +300,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
+        Friend Overrides ReadOnly Property TypeDeclarationInfos As ImmutableArray(Of TypeDeclarationInfo)
+            Get
+                Throw New NotImplementedException()
+            End Get
+        End Property
+
 #Region "Constructors and Factories"
 
         ''' <summary>
