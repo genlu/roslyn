@@ -367,5 +367,54 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Return False
         End Function
+
+        Public Function GetTypeDeclarationInfos() As ImmutableArray(Of TypeDeclarationInfo)
+            Throw New NotImplementedException()
+        End Function
+
+        Private Shared Sub VisitDeclaration(declaration As Declaration, currentNamespace As String, builder As ArrayBuilder(Of TypeDeclarationInfo))
+            Select Case declaration.Kind
+                Case DeclarationKind.Namespace
+                    currentNamespace = ConcatNamespace(currentNamespace, declaration.Name)
+                    For Each child In declaration.Children
+                        VisitDeclaration(child, currentNamespace, builder)
+                    Next
+
+                Case DeclarationKind.Class,
+                     DeclarationKind.Interface,
+                     DeclarationKind.Structure,
+                     DeclarationKind.Enum,
+                     DeclarationKind.Delegate
+                    builder.Add(HandleTypeDeclaration(declaration, currentNamespace))
+            End Select
+
+        End Sub
+
+        Private Shared Function HandleTypeDeclaration(declaration As Declaration, currentNamespace As String) As TypeDeclarationInfo
+            Dim typeKind = declaration.Kind.ToTypeKind()
+            Dim accessibility As Accessibility
+            Dim arity As Integer
+
+            If TypeOf declaration Is SingleTypeDeclaration Then
+                Dim singleType = DirectCast(declaration, SingleTypeDeclaration)
+                accessibility = singleType.Modifiers.ToAccessibility()
+                arity = singleType.Arity
+            Else
+                Dim mergedType = DirectCast(declaration, MergedTypeDeclaration)
+                accessibility = mergedType.Declarations.Select(Function(d) d.Modifiers).Aggregate(Function(a, b) a Or b).ToAccessibility()
+                arity = mergedType.Arity
+            End If
+
+            Return New TypeDeclarationInfo(declaration.Name, currentNamespace, typeKind, accessibility, arity)
+        End Function
+
+        Private Shared Function ConcatNamespace(prefix As String, name As String) As String
+            If prefix.Length = 0 Then
+                Return name
+            End If
+
+            Return prefix + "." + name
+        End Function
     End Class
+
 End Namespace

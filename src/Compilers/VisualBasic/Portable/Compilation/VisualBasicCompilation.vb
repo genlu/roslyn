@@ -302,7 +302,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Friend Overrides ReadOnly Property TypeDeclarationInfos As ImmutableArray(Of TypeDeclarationInfo)
             Get
-                Throw New NotImplementedException()
+                Return Declarations.GetTypeDeclarationInfos()
             End Get
         End Property
 
