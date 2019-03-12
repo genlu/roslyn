@@ -4,9 +4,7 @@ Imports System.Collections.Concurrent
 Imports System.Collections.Immutable
 Imports System.IO
 Imports System.Reflection.Metadata
-Imports System.Runtime.InteropServices
 Imports System.Threading
-Imports System.Threading.Tasks
 Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Diagnostics
@@ -300,11 +298,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property TypeDeclarationInfos As ImmutableArray(Of TypeDeclarationInfo)
-            Get
-                Return Declarations.GetTypeDeclarationInfos()
-            End Get
-        End Property
+        Friend Overrides Function GetTypeDeclarationInfos() As ImmutableArray(Of TypeDeclarationInfo)
+            Return Declarations.GetTypeDeclarationInfos()
+        End Function
 
 #Region "Constructors and Factories"
 

@@ -3247,13 +3247,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal override ImmutableArray<TypeDeclarationInfo> TypeDeclarationInfos
-        {
-            get
-            {
-                return Declarations.GetTypeDeclarationInfos(this);
-            }
-        }
+        internal override ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos()
+            => Declarations.GetTypeDeclarationInfos(this);
 
         private abstract class AbstractSymbolSearcher
         {

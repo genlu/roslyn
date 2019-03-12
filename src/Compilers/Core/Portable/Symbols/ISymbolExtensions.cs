@@ -4,6 +4,14 @@ using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis
 {
+    public static class CompilationExtensions
+    {
+        public static ImmutableArray<TypeDeclarationInfo> GetTopLevelTypeDeclarationInfos(this Compilation compilation)
+        {
+            return compilation.TypeDeclarationInfos;
+        }
+    }
+
     public static partial class ISymbolExtensions
     {
         /// <summary>
@@ -110,11 +118,6 @@ namespace Microsoft.CodeAnalysis
             }
 
             return false;
-        }
-
-        public static ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(this Compilation compilation)
-        {
-            return compilation.TypeDeclarationInfos;
         }
     }
 }

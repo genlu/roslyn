@@ -3188,6 +3188,6 @@ namespace Microsoft.CodeAnalysis
             return foundVersion;
         }
 
-        internal abstract ImmutableArray<TypeDeclarationInfo> TypeDeclarationInfos { get; }
+        internal abstract ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos();
     }
 }

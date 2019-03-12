@@ -6,16 +6,16 @@ namespace Microsoft.CodeAnalysis
     {
         public TypeDeclarationInfo(string typeName, string namespaceName, TypeKind kind, Accessibility accessibility, int arity)
         {
-            TypeName = typeName;
-            NamespaceName = namespaceName;
+            Name = typeName;
+            ContainingNamespace = namespaceName;
             Kind = kind;
             Accessibility = accessibility;
             Arity = arity;
         }
 
-        public string TypeName { get; }
+        public string Name { get; }
 
-        public string NamespaceName { get; }
+        public string ContainingNamespace { get; }
 
         public TypeKind Kind { get; }
 
