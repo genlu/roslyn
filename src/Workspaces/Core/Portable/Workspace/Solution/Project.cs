@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -247,6 +248,13 @@ namespace Microsoft.CodeAnalysis
         {
             return this.SupportsCompilation &&
                    await _solution.State.ContainsSymbolsWithNameAsync(Id, predicate, filter, cancellationToken).ConfigureAwait(false);
+        }
+
+        internal async Task<ImmutableArray<TypeDeclarationInfo>> GetTopLevelTypeDeclarationInfosAsync(CancellationToken cancellationToken)
+        {
+            return this.SupportsCompilation
+                ? await _solution.State.GetTopLevelTypeDeclarationInfosAsync(Id, cancellationToken).ConfigureAwait(false)
+                : ImmutableArray<TypeDeclarationInfo>.Empty;
         }
 
         internal async Task<IEnumerable<Document>> GetDocumentsWithNameAsync(Func<string, bool> predicate, SymbolFilter filter, CancellationToken cancellationToken)
