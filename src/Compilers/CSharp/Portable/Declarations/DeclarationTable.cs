@@ -369,24 +369,26 @@ namespace Microsoft.CodeAnalysis.CSharp
             return false;
         }
 
-        public ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(CSharpCompilation compilation)
+        public ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(CSharpCompilation compilation, CancellationToken cancellationToken)
         {
             var builder = ArrayBuilder<TypeDeclarationInfo>.GetInstance();
 
-            // TODO: we don't need a merged root for this purpose, should refactor the code to avoid merging.
+            // TODO: we probaably don't really need a merged root for this purpose
             var root = GetMergedRoot(compilation);
-            VisitDeclaration(root, string.Empty, builder);
+            VisitDeclaration(root, string.Empty, builder, cancellationToken);
             return builder.ToImmutableAndFree();
 
-            static void VisitDeclaration(Declaration declaration, string currentNamaspace, ArrayBuilder<TypeDeclarationInfo> builder)
+            static void VisitDeclaration(Declaration declaration, string currentNamaspace, ArrayBuilder<TypeDeclarationInfo> builder, CancellationToken cancellationToken)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 switch (declaration.Kind)
                 {
                     case DeclarationKind.Namespace:
                         currentNamaspace = ConcatNamespace(currentNamaspace, declaration.Name);
                         foreach (var child in declaration.Children)
                         {
-                            VisitDeclaration(child, currentNamaspace, builder);
+                            VisitDeclaration(child, currentNamaspace, builder, cancellationToken);
                         }
                         break;
                     case DeclarationKind.Interface:

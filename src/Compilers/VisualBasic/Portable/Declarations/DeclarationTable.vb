@@ -368,16 +368,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
-        Public Function GetTypeDeclarationInfos() As ImmutableArray(Of TypeDeclarationInfo)
-            Throw New NotImplementedException()
+        Public Function GetTypeDeclarationInfos(compilation As VisualBasicCompilation, cancellationToken As CancellationToken) As ImmutableArray(Of TypeDeclarationInfo)
+            Dim builder = ArrayBuilder(Of TypeDeclarationInfo).GetInstance()
+            Dim root = GetMergedRoot(compilation)
+            VisitDeclaration(root, String.Empty, builder, cancellationToken)
+            Return builder.ToImmutableAndFree()
         End Function
 
-        Private Shared Sub VisitDeclaration(declaration As Declaration, currentNamespace As String, builder As ArrayBuilder(Of TypeDeclarationInfo))
+        Private Shared Sub VisitDeclaration(declaration As Declaration, currentNamespace As String, builder As ArrayBuilder(Of TypeDeclarationInfo), cancellationToken As CancellationToken)
+            cancellationToken.ThrowIfCancellationRequested()
+
             Select Case declaration.Kind
                 Case DeclarationKind.Namespace
                     currentNamespace = ConcatNamespace(currentNamespace, declaration.Name)
                     For Each child In declaration.Children
-                        VisitDeclaration(child, currentNamespace, builder)
+                        VisitDeclaration(child, currentNamespace, builder, cancellationToken)
                     Next
 
                 Case DeclarationKind.Class,

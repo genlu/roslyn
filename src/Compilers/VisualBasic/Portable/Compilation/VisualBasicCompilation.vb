@@ -298,8 +298,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
-        Friend Overrides Function GetTypeDeclarationInfos() As ImmutableArray(Of TypeDeclarationInfo)
-            Return Declarations.GetTypeDeclarationInfos()
+        Friend Overrides Function GetTypeDeclarationInfos(cancellationToken As CancellationToken) As ImmutableArray(Of TypeDeclarationInfo)
+            Return Declarations.GetTypeDeclarationInfos(Me, cancellationToken)
         End Function
 
 #Region "Constructors and Factories"
