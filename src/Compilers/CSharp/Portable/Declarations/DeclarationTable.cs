@@ -4,9 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
@@ -386,7 +384,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             void VisitDeclaration(
                 Declaration declaration,
-                string currentNamaspace,
+                string currentNamespace,
                 bool shouldVisitTypesInCurrentNamespace)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -394,11 +392,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                 switch (declaration.Kind)
                 {
                     case DeclarationKind.Namespace:
-                        currentNamaspace = ConcatNamespace(currentNamaspace, declaration.Name);
-                        shouldVisitTypesInCurrentNamespace = namespacePredicate(currentNamaspace);
+                        currentNamespace = ConcatNamespace(currentNamespace, declaration.Name);
+                        shouldVisitTypesInCurrentNamespace = namespacePredicate(currentNamespace);
                         foreach (var child in declaration.Children)
                         {
-                            VisitDeclaration(child, currentNamaspace, shouldVisitTypesInCurrentNamespace);
+                            VisitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace);
                         }
                         break;
 
@@ -412,7 +410,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             var typeDeclaration = declaration as ITypeDeclaration;
                             if (typeDeclartionPredicate(typeDeclaration))
                             {
-                                builder.Add(create(typeDeclaration, currentNamaspace));
+                                builder.Add(create(typeDeclaration, currentNamespace));
                             }
                         }
                         break;
