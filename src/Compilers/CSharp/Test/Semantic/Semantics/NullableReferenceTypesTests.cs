@@ -4578,8 +4578,11 @@ public class MyAttribute : System.Attribute
 class C { }
 ";
             var comp = CreateCompilation(source, options: TestOptions.DebugDll);
-            comp.VerifyDiagnostics();
-            // Expecting a warning. Issue tracked by https://github.com/dotnet/roslyn/issues/23697
+            comp.VerifyDiagnostics(
+                // (7,20): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [My(new string[] { null })]
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(7, 20)
+                );
         }
 
         [Fact, WorkItem(31740, "https://github.com/dotnet/roslyn/issues/31740")]
@@ -4623,6 +4626,893 @@ class C { }
                 // (7,2): error CS0181: Attribute constructor parameter 'y' has type 'dynamic[]', which is not a valid attribute parameter type
                 // [My(new object[] { })]
                 Diagnostic(ErrorCode.ERR_BadAttributeParamType, "My").WithArguments("y", "dynamic[]").WithLocation(7, 2)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s) { }
+}
+
+[MyAttribute(null)] //1
+class C { }
+
+[MyAttribute(""str"")]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_Suppressed()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s) { }
+}
+
+[MyAttribute(null!)] 
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_CSharp7_3()
+        {
+            var source =
+@"
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s) { }
+}
+
+[MyAttribute(null)] 
+class C { }
+
+[MyAttribute(""str"")]
+class D { }
+";
+            var comp = CreateCompilation(source, parseOptions: TestOptions.Regular7_3);
+            comp.VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_WithDefaultArgument()
+        {
+            var source =
+@"#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2 = ""str"") { }
+}
+
+[MyAttribute(null)] //1
+class C { } 
+
+[MyAttribute(null, null)] // 2, 3
+class D { }
+
+[MyAttribute(null, ""str"")] // 4
+class E { }
+
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (7,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(7, 14),
+                // (10,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, null)] // 2, 3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 14),
+                // (10,20): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, null)] // 2, 3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 20),
+                // (13,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, "str")] // 4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(13, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_WithNullDefaultArgument()
+        {
+            var source =
+@"#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2 = null) { } //1
+}
+
+[MyAttribute(""str"")] 
+class C { } 
+
+[MyAttribute(""str"", null)] // 2
+class D { }
+
+[MyAttribute(""str"", ""str"")]
+class E { }
+
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (4,46): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     public MyAttribute(string s, string s2 = null) { } //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(4, 46),
+                // (10,21): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("str", null)] // 2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 21)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_WithNamedArguments()
+        {
+            var source =
+@"#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2 = ""str"", string? s3 = ""str"") { }
+}
+
+[MyAttribute(""str"", s2: null, s3: null)] //1
+class C { }
+
+[MyAttribute(s3: null, s2: null, s: ""str"")] // 2
+class D { }
+
+[MyAttribute(s3: null, s2: ""str"", s: ""str"")]
+class E { }
+
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (7,25): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("str", s2: null, s3: null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(7, 25),
+                // (10,28): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(s3: null, s2: null, s: "str")] // 2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 28)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_DisabledEnabled()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2) { }
+}
+
+[MyAttribute(null, //1
+#nullable disable
+null
+#nullable enable
+)] 
+class C { }
+
+[MyAttribute(
+#nullable disable
+null, 
+#nullable enable
+null //2
+)] 
+class D { }
+
+[MyAttribute(null, //3
+s2: 
+#nullable disable
+null
+#nullable enable
+)] 
+class E { }
+
+[MyAttribute(
+#nullable disable
+null,
+s2: 
+#nullable enable
+null //4
+)] 
+class F { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 14),
+                // (19,1): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // null //2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(19, 1),
+                // (23,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, //3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(23, 14),
+                // (36,1): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // null //4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(36, 1)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_NullLiteral_WarningDisabledEnabled()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2) { }
+}
+#nullable disable
+
+#pragma warning enable nullable
+[MyAttribute(null, //1
+#pragma warning disable nullable
+null
+#pragma warning enable nullable
+)] 
+class C { }
+
+[MyAttribute(
+#pragma warning disable nullable
+null, 
+#pragma warning enable nullable
+null //2
+)] 
+class D { }
+
+[MyAttribute(null, //3
+s2: 
+#pragma warning disable nullable
+null
+#pragma warning enable nullable
+)] 
+class E { }
+
+[MyAttribute(
+#pragma warning disable nullable
+null,
+s2: 
+#pragma warning enable nullable
+null //4
+)] 
+class F { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 14),
+                // (21,1): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // null //2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(21, 1),
+                // (25,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, //3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(25, 14),
+                // (38,1): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // null //4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(38, 1)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_LiteralNull()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(null)] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_LiteralNull_Suppressed()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(null!)]
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_ArrayOfNullable()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(new string?[]{ null })] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8620: Argument of type 'string?[]' cannot be used as an input of type 'string[]' for parameter 's' in 'MyAttribute.MyAttribute(string[] s)' due to differences in the nullability of reference types.
+                // [MyAttribute(new string?[]{ null })] //1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInArgument, "new string?[]{ null }").WithArguments("string?[]", "string[]", "s", "MyAttribute.MyAttribute(string[] s)").WithLocation(8, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_ArrayOfNullable_Suppressed()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(new string?[]{ null }!)]
+class C { }
+
+[MyAttribute(new string[]{ null! })]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_ArrayOfNullable_ImplicitType()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(new []{ ""str"", null })] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8620: Argument of type 'string?[]' cannot be used as an input of type 'string[]' for parameter 's' in 'MyAttribute.MyAttribute(string[] s)' due to differences in the nullability of reference types.
+                // [MyAttribute(new []{ "str", null })] //1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInArgument, @"new []{ ""str"", null }").WithArguments("string?[]", "string[]", "s", "MyAttribute.MyAttribute(string[] s)").WithLocation(8, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_NullValueInInitializer()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string[] s) { }
+}
+
+[MyAttribute(new string[]{ ""str"", null, ""str"" })] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,35): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(new string[]{ "str", null, "str" })] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 35)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_Array_NullValueInNestedInitializer()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(object[] s) { }
+}
+
+[MyAttribute(new object[]
+{ 
+    new string[] { ""str"", null }, //1
+    new string[] { null }, //2
+    new string?[] { null }
+})]
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,27): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     new string[] { "str", null }, //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 27),
+                // (11,20): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     new string[] { null }, //2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(11, 20)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_ParamsArrayOfNullable_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(params object?[] s) { }
+}
+
+[MyAttribute(null)] //1
+class C { }
+
+[MyAttribute(null, null)] 
+class D { }
+
+[MyAttribute((object?)null)] 
+class E { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 14)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_Constructor_ParamsArray_NullItem()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s1, params object[] s) { }
+}
+
+[MyAttribute(""str"", null, ""str"", ""str"")] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (8,21): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("str", null, "str", "str")] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(8, 21)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_PropertyAssignment_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+    
+    public string MyValue { get; set; } = ""str"";
+}
+
+[MyAttribute(MyValue = null)] //1
+class C { }
+
+[MyAttribute(MyValue = ""str"")]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,24): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(MyValue = null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 24)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_PropertyAssignment_Array_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+    
+    public string[] PropertyArray { get; set; } = new string[] { };
+
+    public string[]? NullablePropertyArray { get; set; } = null;
+
+}
+
+[MyAttribute(PropertyArray = null)] //1
+class C { }
+
+[MyAttribute(NullablePropertyArray = null)] 
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (13,30): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(PropertyArray = null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(13, 30)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_PropertyAssignment_Array_ArrayOfNullable()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+
+    public string[] PropertyArray { get; set; } = new string[] { ""str"" };
+
+    public string[]? PropertyNullableArray { get; set; } = new string[] { ""str"" };
+}
+
+[MyAttribute(PropertyArray = new string?[]{ null })] //1
+class C { }
+
+[MyAttribute(PropertyNullableArray = null)]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (12,30): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                // [MyAttribute(PropertyArray = new string?[]{ null })] //1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(12, 30)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_FieldAssignment_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+
+    public string myValue = ""str"";
+}
+
+[MyAttribute(myValue = null)] //1
+class C { }
+
+[MyAttribute(myValue = ""str"")]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,24): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(myValue = null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(10, 24)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_FieldAssignment_Array_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+
+    public string[] fieldArray = new string[] { };
+
+    public string[]? nullableFieldArray = null;
+}
+
+[MyAttribute(fieldArray = null)] //1
+class C { }
+
+[MyAttribute(nullableFieldArray = null)]
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (12,27): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(fieldArray = null)] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(12, 27)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_FieldAssignment_Array_ArrayOfNullable()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public MyAttribute() { }
+
+    public string[] fieldArray = new string[] { };
+
+    public string?[] fieldArrayOfNullable = new string?[] { };
+}
+
+[MyAttribute(fieldArray = new string?[]{ null })] //1
+class C { }
+
+[MyAttribute(fieldArrayOfNullable = new string?[]{ null })] 
+class D { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (12,27): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                // [MyAttribute(fieldArray = new string?[]{ null })] //1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(12, 27)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_NoMatchingConstructor_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute 
+{
+}
+
+[MyAttribute(null)] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (7,2): error CS1729: 'MyAttribute' does not contain a constructor that takes 1 arguments
+                // [MyAttribute(null)] //1
+                Diagnostic(ErrorCode.ERR_BadCtorArgCount, "MyAttribute(null)").WithArguments("MyAttribute", "1").WithLocation(7, 2)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_NoMatchingConstructor_Array_NullValueInInitializer()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+}
+
+[MyAttribute(new string[] { null })] //1
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (7,2): error CS1729: 'MyAttribute' does not contain a constructor that takes 1 arguments
+                // [MyAttribute(new string[] { null })] //1
+                Diagnostic(ErrorCode.ERR_BadCtorArgCount, "MyAttribute(new string[] { null })").WithArguments("MyAttribute", "1").WithLocation(7, 2),
+                // (7,29): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(new string[] { null })] //1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(7, 29)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_NoMatchingConstructor_PropertyAssignment_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public string[] PropertyArray { get; set; } = new string[] { ""str"" };
+
+    public string[]? PropertyNullableArray { get; set; } = new string[] { ""str"" };
+}
+
+[MyAttribute(  // 1
+    new string[] { null }, // 2
+    PropertyArray = null, // 3
+    PropertyNullableArray = new string[] { null } // 4
+)] 
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,2): error CS1729: 'MyAttribute' does not contain a constructor that takes 1 arguments
+                // [MyAttribute(  // 1
+                Diagnostic(ErrorCode.ERR_BadCtorArgCount, @"MyAttribute(  // 1
+    new string[] { null }, // 2
+    PropertyArray = null, // 3
+    PropertyNullableArray = new string[] { null } // 4
+)").WithArguments("MyAttribute", "1").WithLocation(10, 2),
+                // (11,20): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     new string[] { null }, // 2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(11, 20),
+                // (12,21): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     PropertyArray = null, // 3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(12, 21),
+                // (13,44): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     PropertyNullableArray = new string[] { null } // 4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(13, 44)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_NoMatchingConstructor_FieldAssignment_NullLiteral()
+        {
+            var source =
+@"
+#nullable enable
+class MyAttribute : System.Attribute
+{
+    public string[] fieldArray = new string[] { };
+
+    public string?[] fieldArrayOfNullable = new string?[] { };
+}
+
+[MyAttribute( // 1
+    new string[] { null }, // 2
+    fieldArray = null, // 3
+    fieldArrayOfNullable = new string[] { null } // 4
+)] 
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (10,2): error CS1729: 'MyAttribute' does not contain a constructor that takes 1 arguments
+                // [MyAttribute( // 1
+                Diagnostic(ErrorCode.ERR_BadCtorArgCount, @"MyAttribute( // 1
+    new string[] { null }, // 2
+    fieldArray = null, // 3
+    fieldArrayOfNullable = new string[] { null } // 4
+)").WithArguments("MyAttribute", "1").WithLocation(10, 2),
+                // (11,20): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     new string[] { null }, // 2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(11, 20),
+                // (12,18): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     fieldArray = null, // 3
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(12, 18),
+                // (13,43): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //     fieldArrayOfNullable = new string[] { null } // 4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(13, 43)
+                );
+        }
+
+        [Fact]
+        public void AttributeArgument_ComplexAssignment()
+        {
+            var source =
+@"
+#nullable enable
+[System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+class MyAttribute : System.Attribute
+{
+    public MyAttribute(string s, string s2 = ""str"", string s3 = ""str"") { }
+
+    public string[] fieldArray = new string[] { };
+
+    public string?[] fieldArrayOfNullable = new string[] { };
+
+    public string[]? nullableFieldArray = null;
+
+    public string[] PropertyArray { get; set; } = new string[] { };
+
+    public string?[] PropertyArrayOfNullable { get; set; } = new string[] { };
+
+    public string[]? NullablePropertyArray { get; set; } = null;
+
+}
+
+[MyAttribute(""s1"")]
+[MyAttribute(""s1"", s3: ""s3"", fieldArray = new string[]{})]
+[MyAttribute(""s1"", s2: ""s2"", fieldArray = new string[]{}, PropertyArray = new string[]{})]
+[MyAttribute(""s1"", fieldArrayOfNullable = new string?[]{ null }, NullablePropertyArray = null)]
+[MyAttribute(null)] // 1
+[MyAttribute(""s1"", s3: null, fieldArray = new string[]{})] // 2
+[MyAttribute(""s1"", s2: ""s2"", fieldArray = new string?[]{ null }, PropertyArray = new string[]{})] // 3
+[MyAttribute(""s1"", PropertyArrayOfNullable = null)] // 4
+[MyAttribute(""s1"", NullablePropertyArray = new string?[]{ null })] // 5
+[MyAttribute(""s1"", fieldArrayOfNullable = null)] // 6
+[MyAttribute(""s1"", nullableFieldArray = new string[]{ null })] // 7
+[MyAttribute(null, //8
+            s2: null, //9
+            fieldArrayOfNullable = null, //10
+            NullablePropertyArray = new string?[]{ null })] // 11
+[MyAttribute(null, // 12
+#nullable disable
+            s2: null,
+#nullable enable
+            fieldArrayOfNullable = null, //13
+#pragma warning disable nullable
+            NullablePropertyArray = new string?[]{ null },
+#pragma warning enable nullable
+            nullableFieldArray = new string?[]{ null })] //14
+class C { }
+";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (26,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null)] // 1
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(26, 14),
+                // (27,24): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("s1", s3: null, fieldArray = new string[]{})] // 2
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(27, 24),
+                // (28,43): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                // [MyAttribute("s1", s2: "s2", fieldArray = new string?[]{ null }, PropertyArray = new string[]{})] // 3
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(28, 43),
+                // (29,46): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("s1", PropertyArrayOfNullable = null)] // 4
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(29, 46),
+                // (30,44): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                // [MyAttribute("s1", NullablePropertyArray = new string?[]{ null })] // 5
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(30, 44),
+                // (31,43): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("s1", fieldArrayOfNullable = null)] // 6
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(31, 43),
+                // (32,55): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute("s1", nullableFieldArray = new string[]{ null })] // 7
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(32, 55),
+                // (33,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, //8
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(33, 14),
+                // (34,17): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //             s2: null, //9
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(34, 17),
+                // (35,36): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //             fieldArrayOfNullable = null, //10
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(35, 36),
+                // (36,37): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                //             NullablePropertyArray = new string?[]{ null })] // 11
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(36, 37),
+                // (37,14): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                // [MyAttribute(null, // 12
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(37, 14),
+                // (41,36): warning CS8625: Cannot convert null literal to non-nullable reference or unconstrained type parameter.
+                //             fieldArrayOfNullable = null, //13
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "null").WithLocation(41, 36),
+                // (45,34): warning CS8619: Nullability of reference types in value of type 'string?[]' doesn't match target type 'string[]'.
+                //             nullableFieldArray = new string?[]{ null })] //14
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInAssignment, "new string?[]{ null }").WithArguments("string?[]", "string[]").WithLocation(45, 34)
                 );
         }
 
@@ -5980,7 +6870,7 @@ namespace System
         A.F(null);
     }
 }";
-            TypeSymbolWithAnnotations getParameterType(Compilation c) => c.GetMember<MethodSymbol>("A.F").Parameters[0].Type;
+            TypeWithAnnotations getParameterType(Compilation c) => c.GetMember<MethodSymbol>("A.F").Parameters[0].TypeWithAnnotations;
 
             // 7.0 library
             var comp0 = CreateCompilation(source0, parseOptions: TestOptions.Regular7);
@@ -6106,15 +6996,15 @@ public class C
             void verify(Compilation c)
             {
                 c.VerifyDiagnostics();
-                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<FieldSymbol>("C.F").Type.NullableAnnotation);
-                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<EventSymbol>("C.E").Type.NullableAnnotation);
-                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<PropertySymbol>("C.P").Type.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<FieldSymbol>("C.F").TypeWithAnnotations.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<EventSymbol>("C.E").TypeWithAnnotations.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, c.GetMember<PropertySymbol>("C.P").TypeWithAnnotations.NullableAnnotation);
                 var indexer = c.GetMember<PropertySymbol>("C.this[]");
-                Assert.Equal(NullableAnnotation.Oblivious, indexer.Type.NullableAnnotation);
-                Assert.Equal(NullableAnnotation.Oblivious, indexer.Parameters[0].Type.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, indexer.TypeWithAnnotations.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, indexer.Parameters[0].TypeWithAnnotations.NullableAnnotation);
                 var method = c.GetMember<MethodSymbol>("C.M");
-                Assert.Equal(NullableAnnotation.Oblivious, method.ReturnType.NullableAnnotation);
-                Assert.Equal(NullableAnnotation.Oblivious, method.Parameters[0].Type.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, method.ReturnTypeWithAnnotations.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, method.Parameters[0].TypeWithAnnotations.NullableAnnotation);
             }
 
             var comp1A = CreateCompilation(source1, references: new MetadataReference[] { new CSharpCompilationReference(comp0) });
@@ -6150,21 +7040,21 @@ public class C
             var comp0 = CreateCompilation(source0, parseOptions: TestOptions.Regular7);
             comp0.VerifyDiagnostics();
 
-            void verifyTuple(TypeSymbolWithAnnotations type)
+            void verifyTuple(TypeWithAnnotations type)
             {
-                var tuple = (TupleTypeSymbol)type.TypeSymbol;
-                Assert.Equal(NullableAnnotation.Oblivious, tuple.TupleElements[0].Type.NullableAnnotation);
-                Assert.Equal(NullableAnnotation.Oblivious, tuple.TupleElements[1].Type.NullableAnnotation);
+                var tuple = (TupleTypeSymbol)type.Type;
+                Assert.Equal(NullableAnnotation.Oblivious, tuple.TupleElements[0].TypeWithAnnotations.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.Oblivious, tuple.TupleElements[1].TypeWithAnnotations.NullableAnnotation);
             }
 
             void verify(Compilation c)
             {
                 c.VerifyDiagnostics();
-                verifyTuple(c.GetMember<FieldSymbol>("C.F").Type);
-                verifyTuple(c.GetMember<PropertySymbol>("C.P").Type);
+                verifyTuple(c.GetMember<FieldSymbol>("C.F").TypeWithAnnotations);
+                verifyTuple(c.GetMember<PropertySymbol>("C.P").TypeWithAnnotations);
                 var method = c.GetMember<MethodSymbol>("C.M");
-                verifyTuple(method.ReturnType);
-                verifyTuple(method.Parameters[0].Type);
+                verifyTuple(method.ReturnTypeWithAnnotations);
+                verifyTuple(method.Parameters[0].TypeWithAnnotations);
             }
 
             var comp1A = CreateCompilation(source1, references: new[] { new CSharpCompilationReference(comp0) });
@@ -6219,15 +7109,15 @@ class C : I<string>
             comp.VerifyDiagnostics();
             var type = comp.GetMember<NamedTypeSymbol>("C");
             var interfaceType = type.Interfaces().Single();
-            var typeArg = interfaceType.TypeArgumentsNoUseSiteDiagnostics.Single();
+            var typeArg = interfaceType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics.Single();
             Assert.Equal(NullableAnnotation.Oblivious, typeArg.NullableAnnotation);
             var method = type.GetMember<MethodSymbol>("I<System.String>.F");
-            Assert.Equal(NullableAnnotation.Oblivious, method.ReturnType.NullableAnnotation);
-            typeArg = ((NamedTypeSymbol)method.ReturnType.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics.Single();
+            Assert.Equal(NullableAnnotation.Oblivious, method.ReturnTypeWithAnnotations.NullableAnnotation);
+            typeArg = ((NamedTypeSymbol)method.ReturnType).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics.Single();
             Assert.Equal(NullableAnnotation.Oblivious, typeArg.NullableAnnotation);
             var parameter = method.Parameters.Single();
-            Assert.Equal(NullableAnnotation.Oblivious, parameter.Type.NullableAnnotation);
-            typeArg = ((NamedTypeSymbol)parameter.Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics.Single();
+            Assert.Equal(NullableAnnotation.Oblivious, parameter.TypeWithAnnotations.NullableAnnotation);
+            typeArg = ((NamedTypeSymbol)parameter.Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics.Single();
             Assert.Equal(NullableAnnotation.Oblivious, typeArg.NullableAnnotation);
         }
 
@@ -7480,13 +8370,13 @@ class B : A
             comp.VerifyDiagnostics();
 
             var method = comp.GetMember<MethodSymbol>("A.F");
-            var typeArg = ((NamedTypeSymbol)method.ReturnType.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0];
-            Assert.True(typeArg.IsValueType);
+            var typeArg = ((NamedTypeSymbol)method.ReturnType).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0];
+            Assert.True(typeArg.Type.IsValueType);
             Assert.Equal(NullableAnnotation.Oblivious, typeArg.NullableAnnotation);
 
             method = comp.GetMember<MethodSymbol>("B.F");
-            typeArg = ((NamedTypeSymbol)method.ReturnType.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0];
-            Assert.True(typeArg.IsValueType);
+            typeArg = ((NamedTypeSymbol)method.ReturnType).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0];
+            Assert.True(typeArg.Type.IsValueType);
             Assert.Equal(NullableAnnotation.Oblivious, typeArg.NullableAnnotation);
 
             // https://github.com/dotnet/roslyn/issues/29843: Test all combinations of base and derived
@@ -8332,7 +9222,7 @@ class C3
             void verify(string methodName, string displayName, NullableAnnotation nullableAnnotation)
             {
                 var method = comp.GetMember<MethodSymbol>(methodName);
-                var type = method.ReturnType;
+                var type = method.ReturnTypeWithAnnotations;
                 Assert.Equal(displayName, type.ToTestDisplayString(true));
                 Assert.Equal(nullableAnnotation, type.NullableAnnotation);
             }
@@ -8435,7 +9325,7 @@ class C3
             void verify(string methodName, string displayName, NullableAnnotation nullableAnnotation)
             {
                 var method = comp.GetMember<MethodSymbol>(methodName);
-                var type = method.ReturnType;
+                var type = method.ReturnTypeWithAnnotations;
                 Assert.Equal(displayName, type.ToTestDisplayString(true));
                 Assert.Equal(nullableAnnotation, type.NullableAnnotation);
             }
@@ -8626,13 +9516,13 @@ class B : A
             var b = compilation.GetTypeByMetadataName("B");
             var m1 = b.GetMember<MethodSymbol>("M1");
             Assert.False(m1.Parameters[0].Type.IsNullableType());
-            Assert.Equal(NullableAnnotation.Annotated, m1.Parameters[0].Type.NullableAnnotation);
+            Assert.Equal(NullableAnnotation.Annotated, m1.Parameters[0].TypeWithAnnotations.NullableAnnotation);
             Assert.True(m1.Parameters[0].Type.IsReferenceType);
             Assert.False(m1.OverriddenMethod.Parameters[0].Type.IsNullableType());
 
             var m2 = b.GetMember<MethodSymbol>("M2");
             Assert.False(m2.ReturnType.IsNullableType());
-            Assert.Equal(NullableAnnotation.Annotated, m2.ReturnType.NullableAnnotation);
+            Assert.Equal(NullableAnnotation.Annotated, m2.ReturnTypeWithAnnotations.NullableAnnotation);
             Assert.True(m2.ReturnType.IsReferenceType);
             Assert.False(m2.OverriddenMethod.ReturnType.IsNullableType());
         }
@@ -8819,12 +9709,12 @@ class C<T> {}
             var m3 = b.GetMember<MethodSymbol>("M3");
             var m4 = b.GetMember<MethodSymbol>("M4");
             var m5 = b.GetMember<MethodSymbol>("M5");
-            Assert.True(((NamedTypeSymbol)m3.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.True(((NamedTypeSymbol)m3.OverriddenMethod.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.True(((NamedTypeSymbol)m4.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.True(((NamedTypeSymbol)m4.OverriddenMethod.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.False(((NamedTypeSymbol)m5.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.False(((NamedTypeSymbol)m5.OverriddenMethod.Parameters[0].Type.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.True(((NamedTypeSymbol)m3.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.True(((NamedTypeSymbol)m3.OverriddenMethod.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.True(((NamedTypeSymbol)m4.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.True(((NamedTypeSymbol)m4.OverriddenMethod.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.False(((NamedTypeSymbol)m5.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.False(((NamedTypeSymbol)m5.OverriddenMethod.Parameters[0].Type).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
         }
 
         [Fact]
@@ -8851,7 +9741,7 @@ class B : A
             var b = compilation.GetTypeByMetadataName("B");
             var m1 = b.GetMember<MethodSymbol>("M1");
             Assert.True(m1.Parameters[0].Type.IsNullableType());
-            Assert.True(m1.Parameters[0].Type.TypeSymbol.StrippedType().IsValueType);
+            Assert.True(m1.Parameters[0].Type.StrippedType().IsValueType);
             Assert.Null(m1.OverriddenMethod);
         }
 
@@ -8889,8 +9779,8 @@ class B : A
             var b = compilation.GetTypeByMetadataName("B");
             var m1 = b.GetMember<MethodSymbol>("M1");
             Assert.False(m1.Parameters[0].Type.IsNullableType());
-            Assert.False(m1.Parameters[0].Type.TypeSymbol.StrippedType().IsValueType);
-            Assert.False(m1.Parameters[0].Type.TypeSymbol.StrippedType().IsReferenceType);
+            Assert.False(m1.Parameters[0].Type.StrippedType().IsValueType);
+            Assert.False(m1.Parameters[0].Type.StrippedType().IsReferenceType);
             Assert.Null(m1.OverriddenMethod);
         }
 
@@ -9054,8 +9944,8 @@ class C<T> {}
 
             var b = compilation.GetTypeByMetadataName("B");
             var m1 = b.GetMember<MethodSymbol>("M1");
-            Assert.False(((NamedTypeSymbol)m1.ReturnType.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
-            Assert.True(((NamedTypeSymbol)m1.OverriddenMethod.ReturnType.TypeSymbol).TypeArgumentsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.False(((NamedTypeSymbol)m1.ReturnType).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
+            Assert.True(((NamedTypeSymbol)m1.OverriddenMethod.ReturnType).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].IsNullableType());
         }
 
         [Fact]
@@ -9229,7 +10119,7 @@ class B : A
             var b = compilation.GetTypeByMetadataName("B");
             var m1 = b.GetMember<MethodSymbol>("M1");
             Assert.False(m1.Parameters[0].Type.IsNullableType());
-            Assert.Equal(NullableAnnotation.Annotated, m1.Parameters[0].Type.NullableAnnotation);
+            Assert.Equal(NullableAnnotation.Annotated, m1.Parameters[0].TypeWithAnnotations.NullableAnnotation);
             Assert.True(m1.Parameters[0].Type.IsReferenceType);
             Assert.False(m1.OverriddenMethod.Parameters[0].Type.IsNullableType());
 
@@ -9457,11 +10347,11 @@ class B2 : A
                 foreach (string memberName in new[] { "E1", "E2" })
                 {
                     var member = type.GetMember<EventSymbol>(memberName);
-                    Assert.False(member.Type.Equals(member.OverriddenEvent.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                    Assert.False(member.TypeWithAnnotations.Equals(member.OverriddenEvent.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
                 }
 
                 var e3 = type.GetMember<EventSymbol>("E3");
-                Assert.True(e3.Type.Equals(e3.OverriddenEvent.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(e3.TypeWithAnnotations.Equals(e3.OverriddenEvent.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "A", "B1", "B2" })
@@ -9470,8 +10360,8 @@ class B2 : A
 
                 foreach (var ev in type.GetMembers().OfType<EventSymbol>())
                 {
-                    Assert.True(ev.Type.Equals(ev.AddMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
-                    Assert.True(ev.Type.Equals(ev.RemoveMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.AddMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.RemoveMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -9563,8 +10453,8 @@ public class B2 : A
             void verifyMethodMatchesOverridden(bool expectMatch, NamedTypeSymbol type, string methodName)
             {
                 var member = type.GetMember<MethodSymbol>(methodName);
-                Assert.Equal(expectMatch, member.ReturnType.Equals(member.OverriddenMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                Assert.Equal(expectMatch, member.Parameters.Single().Type.Equals(member.OverriddenMethod.Parameters.Single().Type, TypeCompareKind.ConsiderEverything));
+                Assert.Equal(expectMatch, member.ReturnTypeWithAnnotations.Equals(member.OverriddenMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                Assert.Equal(expectMatch, member.Parameters.Single().TypeWithAnnotations.Equals(member.OverriddenMethod.Parameters.Single().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
             }
         }
 
@@ -9824,7 +10714,7 @@ class B2 : IA
                     var type = compilation.GetTypeByMetadataName(typeName);
 
                     var impl = (EventSymbol)type.FindImplementationForInterfaceMember(member);
-                    Assert.False(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                    Assert.False(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
                 }
             }
 
@@ -9835,7 +10725,7 @@ class B2 : IA
                 var type = compilation.GetTypeByMetadataName(typeName);
 
                 var impl = (EventSymbol)type.FindImplementationForInterfaceMember(e3);
-                Assert.True(impl.Type.Equals(e3.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(impl.TypeWithAnnotations.Equals(e3.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA", "B1", "B2" })
@@ -9844,8 +10734,8 @@ class B2 : IA
 
                 foreach (var ev in type.GetMembers().OfType<EventSymbol>())
                 {
-                    Assert.True(ev.Type.Equals(ev.AddMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
-                    Assert.True(ev.Type.Equals(ev.RemoveMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.AddMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.RemoveMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -9923,13 +10813,13 @@ class B2 : IB
                 var member = ia.GetMember<EventSymbol>(memberName);
 
                 var impl = (EventSymbol)b1.FindImplementationForInterfaceMember(member);
-                Assert.False(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             var e3 = ia.GetMember<EventSymbol>("E3");
             {
                 var impl = (EventSymbol)b1.FindImplementationForInterfaceMember(e3);
-                Assert.True(impl.Type.Equals(e3.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(impl.TypeWithAnnotations.Equals(e3.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA", "B1" })
@@ -9938,8 +10828,8 @@ class B2 : IB
 
                 foreach (var ev in type.GetMembers().OfType<EventSymbol>())
                 {
-                    Assert.True(ev.Type.Equals(ev.AddMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
-                    Assert.True(ev.Type.Equals(ev.RemoveMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.AddMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(ev.TypeWithAnnotations.Equals(ev.RemoveMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -10020,12 +10910,12 @@ class B2 : A2
 
             foreach (var member in compilation.GetTypeByMetadataName("B1").GetMembers().OfType<PropertySymbol>())
             {
-                Assert.False(member.Type.Equals(member.OverriddenProperty.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(member.TypeWithAnnotations.Equals(member.OverriddenProperty.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (var member in compilation.GetTypeByMetadataName("B2").GetMembers().OfType<PropertySymbol>())
             {
-                Assert.True(member.Type.Equals(member.OverriddenProperty.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(member.TypeWithAnnotations.Equals(member.OverriddenProperty.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "A1", "B1", "A2", "B2" })
@@ -10034,8 +10924,8 @@ class B2 : A2
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -10171,13 +11061,13 @@ class B : IA, IA2
             foreach (var member in compilation.GetTypeByMetadataName("IA").GetMembers().OfType<PropertySymbol>())
             {
                 var impl = (PropertySymbol)b.FindImplementationForInterfaceMember(member);
-                Assert.False(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (var member in compilation.GetTypeByMetadataName("IA2").GetMembers().OfType<PropertySymbol>())
             {
                 var impl = (PropertySymbol)b.FindImplementationForInterfaceMember(member);
-                Assert.True(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA", "IA2", "B" })
@@ -10186,8 +11076,8 @@ class B : IA, IA2
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -10262,13 +11152,13 @@ class B : IA, IA2
             foreach (var member in compilation.GetTypeByMetadataName("IA").GetMembers().OfType<PropertySymbol>())
             {
                 var impl = (PropertySymbol)b.FindImplementationForInterfaceMember(member);
-                Assert.False(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (var member in compilation.GetTypeByMetadataName("IA2").GetMembers().OfType<PropertySymbol>())
             {
                 var impl = (PropertySymbol)b.FindImplementationForInterfaceMember(member);
-                Assert.True(impl.Type.Equals(member.Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(impl.TypeWithAnnotations.Equals(member.TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA", "IA2", "B" })
@@ -10277,8 +11167,8 @@ class B : IA, IA2
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -10334,12 +11224,12 @@ class B : A
             foreach (string memberName in new[] { "M1", "M2" })
             {
                 var member = b.GetMember<MethodSymbol>(memberName);
-                Assert.False(member.ReturnType.Equals(member.OverriddenMethod.ConstructIfGeneric(member.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t))).ReturnType,
+                Assert.False(member.ReturnTypeWithAnnotations.Equals(member.OverriddenMethod.ConstructIfGeneric(member.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t))).ReturnTypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             var m3 = b.GetMember<MethodSymbol>("M3");
-            Assert.True(m3.ReturnType.Equals(m3.OverriddenMethod.ConstructIfGeneric(m3.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t))).ReturnType,
+            Assert.True(m3.ReturnTypeWithAnnotations.Equals(m3.OverriddenMethod.ConstructIfGeneric(m3.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t))).ReturnTypeWithAnnotations,
                 TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
         }
 
@@ -10453,16 +11343,16 @@ class B : IA
             {
                 var member = ia.GetMember<MethodSymbol>(memberName);
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.False(implementing.ReturnType.Equals(implemented.ReturnType,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.False(implementing.ReturnTypeWithAnnotations.Equals(implemented.ReturnTypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var member = ia.GetMember<MethodSymbol>("M3");
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.True(implementing.ReturnType.Equals(implemented.ReturnType,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.True(implementing.ReturnTypeWithAnnotations.Equals(implemented.ReturnTypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
         }
@@ -10521,16 +11411,16 @@ class B : IA
             {
                 var member = ia.GetMember<MethodSymbol>(memberName);
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.False(implementing.ReturnType.Equals(implemented.ReturnType,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.False(implementing.ReturnTypeWithAnnotations.Equals(implemented.ReturnTypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var member = ia.GetMember<MethodSymbol>("M3");
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.True(implementing.ReturnType.Equals(implemented.ReturnType,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.True(implementing.ReturnTypeWithAnnotations.Equals(implemented.ReturnTypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
         }
@@ -10731,12 +11621,12 @@ class B : A
             foreach (string memberName in new[] { "M1", "M2" })
             {
                 var member = b.GetMember<MethodSymbol>(memberName);
-                Assert.False(member.Parameters[0].Type.Equals(member.OverriddenMethod.ConstructIfGeneric(member.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t))).Parameters[0].Type,
+                Assert.False(member.Parameters[0].TypeWithAnnotations.Equals(member.OverriddenMethod.ConstructIfGeneric(member.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t))).Parameters[0].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             var m3 = b.GetMember<MethodSymbol>("M3");
-            Assert.True(m3.Parameters[0].Type.Equals(m3.OverriddenMethod.ConstructIfGeneric(m3.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t))).Parameters[0].Type,
+            Assert.True(m3.Parameters[0].TypeWithAnnotations.Equals(m3.OverriddenMethod.ConstructIfGeneric(m3.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t))).Parameters[0].TypeWithAnnotations,
                 TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
         }
 
@@ -10893,8 +11783,8 @@ class B : A
                                                             parseOptions: TestOptions.Regular8);
 
             var m1 = compilation.GetTypeByMetadataName("B").GetMember<MethodSymbol>("M1");
-            Assert.Equal("C<System.String? modopt(System.Runtime.CompilerServices.IsConst), System.String>", m1.OverriddenMethod.ReturnType.ToTestDisplayString());
-            Assert.Equal("C<System.String modopt(System.Runtime.CompilerServices.IsConst), System.String?>", m1.ReturnType.ToTestDisplayString());
+            Assert.Equal("C<System.String? modopt(System.Runtime.CompilerServices.IsConst), System.String>", m1.OverriddenMethod.ReturnTypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal("C<System.String modopt(System.Runtime.CompilerServices.IsConst), System.String?>", m1.ReturnTypeWithAnnotations.ToTestDisplayString());
 
             compilation.VerifyDiagnostics(
                  // (11,40): warning CS8609: Nullability of reference types in return type doesn't match overridden member.
@@ -10952,16 +11842,16 @@ class B : IA
             {
                 var member = ia.GetMember<MethodSymbol>(memberName);
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.False(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.False(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var member = ia.GetMember<MethodSymbol>("M3");
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.True(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.True(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
         }
@@ -11015,16 +11905,16 @@ class B : IA
             {
                 var member = ia.GetMember<MethodSymbol>(memberName);
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.False(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.False(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var member = ia.GetMember<MethodSymbol>("M3");
                 var implementing = (MethodSymbol)b.FindImplementationForInterfaceMember(member);
-                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
-                Assert.True(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type,
+                var implemented = member.ConstructIfGeneric(implementing.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
+                Assert.True(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
         }
@@ -11093,13 +11983,13 @@ class B3 : A3
             {
                 foreach (var member in compilation.GetTypeByMetadataName(typeName).GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.False(member.Parameters[0].Type.Equals(member.OverriddenProperty.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                    Assert.False(member.Parameters[0].TypeWithAnnotations.Equals(member.OverriddenProperty.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
                 }
             }
 
             foreach (var member in compilation.GetTypeByMetadataName("B3").GetMembers().OfType<PropertySymbol>())
             {
-                Assert.True(member.Parameters[0].Type.Equals(member.OverriddenProperty.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(member.Parameters[0].TypeWithAnnotations.Equals(member.OverriddenProperty.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "A1", "A2", "A3", "B1", "B2", "B3" })
@@ -11108,8 +11998,8 @@ class B3 : A3
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -11178,13 +12068,13 @@ class B3 : IA3
             {
                 var implemented = compilation.GetTypeByMetadataName(typeName[0]).GetMembers().OfType<PropertySymbol>().Single();
                 var implementing = (PropertySymbol)compilation.GetTypeByMetadataName(typeName[1]).FindImplementationForInterfaceMember(implemented);
-                Assert.False(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var implemented = compilation.GetTypeByMetadataName("IA3").GetMembers().OfType<PropertySymbol>().Single();
                 var implementing = (PropertySymbol)compilation.GetTypeByMetadataName("B3").FindImplementationForInterfaceMember(implemented);
-                Assert.True(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA1", "IA2", "IA3", "B1", "B2", "B3" })
@@ -11193,8 +12083,8 @@ class B3 : IA3
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -11263,13 +12153,13 @@ class B3 : IA3
             {
                 var implemented = compilation.GetTypeByMetadataName(typeName[0]).GetMembers().OfType<PropertySymbol>().Single();
                 var implementing = (PropertySymbol)compilation.GetTypeByMetadataName(typeName[1]).FindImplementationForInterfaceMember(implemented);
-                Assert.False(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.False(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             {
                 var implemented = compilation.GetTypeByMetadataName("IA3").GetMembers().OfType<PropertySymbol>().Single();
                 var implementing = (PropertySymbol)compilation.GetTypeByMetadataName("B3").FindImplementationForInterfaceMember(implemented);
-                Assert.True(implementing.Parameters[0].Type.Equals(implemented.Parameters[0].Type, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
+                Assert.True(implementing.Parameters[0].TypeWithAnnotations.Equals(implemented.Parameters[0].TypeWithAnnotations, TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
             foreach (string typeName in new[] { "IA1", "IA2", "IA3", "B1", "B2", "B3" })
@@ -11278,8 +12168,8 @@ class B3 : IA3
 
                 foreach (var property in type.GetMembers().OfType<PropertySymbol>())
                 {
-                    Assert.True(property.Type.Equals(property.GetMethod.ReturnType, TypeCompareKind.ConsiderEverything));
-                    Assert.True(property.Type.Equals(property.SetMethod.Parameters.Last().Type, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.GetMethod.ReturnTypeWithAnnotations, TypeCompareKind.ConsiderEverything));
+                    Assert.True(property.TypeWithAnnotations.Equals(property.SetMethod.Parameters.Last().TypeWithAnnotations, TypeCompareKind.ConsiderEverything));
                 }
             }
         }
@@ -12201,15 +13091,15 @@ partial class C1
 
             var m1 = c1.GetMember<MethodSymbol>("M1");
             var m1Impl = m1.PartialImplementationPart;
-            var m1Def = m1.ConstructIfGeneric(m1Impl.TypeParameters.SelectAsArray(t => TypeSymbolWithAnnotations.Create(t)));
+            var m1Def = m1.ConstructIfGeneric(m1Impl.TypeParameters.SelectAsArray(t => TypeWithAnnotations.Create(t)));
 
             for (int i = 0; i < 3; i++)
             {
-                Assert.False(m1Impl.Parameters[i].Type.Equals(m1Def.Parameters[i].Type,
+                Assert.False(m1Impl.Parameters[i].TypeWithAnnotations.Equals(m1Def.Parameters[i].TypeWithAnnotations,
                     TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
             }
 
-            Assert.True(m1Impl.Parameters[3].Type.Equals(m1Def.Parameters[3].Type,
+            Assert.True(m1Impl.Parameters[3].TypeWithAnnotations.Equals(m1Def.Parameters[3].TypeWithAnnotations,
                 TypeCompareKind.AllIgnoreOptions & ~TypeCompareKind.AllNullableIgnoreOptions));
         }
 
@@ -15392,7 +16282,7 @@ public class C
             var model = compilation.GetSemanticModel(tree);
             var outVar = tree.GetRoot().DescendantNodes().OfType<DeclarationExpressionSyntax>().Single();
             var symbol = (LocalSymbol)model.GetSymbolInfo(outVar).Symbol;
-            Assert.Equal(expectedType, symbol.Type.ToDisplayString(TypeSymbolWithAnnotations.TestDisplayFormat));
+            Assert.Equal(expectedType, symbol.TypeWithAnnotations.ToDisplayString(TypeWithAnnotations.TestDisplayFormat));
             Assert.Null(model.GetDeclaredSymbol(outVar));
         }
 
@@ -15410,7 +16300,7 @@ public class C
             var varDecl = tree.GetRoot().DescendantNodes().OfType<LocalDeclarationStatementSyntax>().Where(d => d.Declaration.Type.IsVar).Single();
             var variable = varDecl.Declaration.Variables.Single();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(variable);
-            Assert.Equal(expectedType, symbol.Type.ToDisplayString(TypeSymbolWithAnnotations.TestDisplayFormat));
+            Assert.Equal(expectedType, symbol.TypeWithAnnotations.ToDisplayString(TypeWithAnnotations.TestDisplayFormat));
             Assert.Null(model.GetSymbolInfo(variable).Symbol);
         }
 
@@ -23161,8 +24051,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23189,8 +24079,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23217,8 +24107,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23248,8 +24138,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23281,9 +24171,9 @@ class CL1
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
             // https://github.com/dotnet/roslyn/issues/29856: Type should be `string!`.
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
             // https://github.com/dotnet/roslyn/issues/29856: IsNullable should be inferred nullable state: false.
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23315,8 +24205,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23347,8 +24237,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23380,8 +24270,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23414,8 +24304,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23447,8 +24337,8 @@ class CL1
             // Tracked by https://github.com/dotnet/roslyn/issues/32661
 
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -23475,8 +24365,8 @@ class CL1
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            var type = symbol.Type;
-            Assert.True(type.IsErrorType());
+            var type = symbol.TypeWithAnnotations;
+            Assert.True(type.Type.IsErrorType());
             Assert.Equal("var", type.ToTestDisplayString());
             Assert.Equal(NullableAnnotation.Oblivious, type.NullableAnnotation);
         }
@@ -23505,16 +24395,16 @@ class CL1
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
 
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("System.String", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation);  // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: false
+            Assert.Equal("System.String", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation);  // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: false
 
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("System.String", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation); // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: true
+            Assert.Equal("System.String", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation); // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: true
 
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[2]);
-            Assert.Equal("System.String", symbol.Type.ToTestDisplayString());
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation); // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: true
+            Assert.Equal("System.String", symbol.TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation); // https://github.com/dotnet/roslyn/issues/29856: Inferred nullability: true
         }
 
         [Fact]
@@ -30335,11 +31225,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString(true));
-            Assert.True(symbol.Type.NullableAnnotation.IsAnnotated());
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.True(symbol.TypeWithAnnotations.NullableAnnotation.IsAnnotated());
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("System.Int32", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.Int32", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30370,11 +31260,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString(true));
-            Assert.True(symbol.Type.NullableAnnotation.IsAnnotated());
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.True(symbol.TypeWithAnnotations.NullableAnnotation.IsAnnotated());
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("System.Int32?", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.Int32?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30417,12 +31307,12 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("T", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation);
+            Assert.Equal("T", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation);
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
             // https://github.com/dotnet/roslyn/issues/29856: Is T correct?
-            Assert.Equal("T", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Oblivious, symbol.Type.NullableAnnotation);
+            Assert.Equal("T", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Oblivious, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30455,11 +31345,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("T?", symbol.Type.ToTestDisplayString(true));
-            Assert.True(symbol.Type.NullableAnnotation.IsAnnotated());
+            Assert.Equal("T?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.True(symbol.TypeWithAnnotations.NullableAnnotation.IsAnnotated());
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("T?", symbol.Type.ToTestDisplayString(true));
-            Assert.True(symbol.Type.NullableAnnotation.IsAnnotated());
+            Assert.Equal("T?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.True(symbol.TypeWithAnnotations.NullableAnnotation.IsAnnotated());
         }
 
         [Fact]
@@ -30492,11 +31382,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("System.String!", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String!", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.TypeWithAnnotations.NullableAnnotation);
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("System.Int32", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.Int32", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30527,11 +31417,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("System.String?", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.String?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("System.Int32?", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("System.Int32?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30564,8 +31454,8 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("T", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("T", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -30601,11 +31491,11 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarators = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().ToArray();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[0]);
-            Assert.Equal("T!", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("T!", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.NotAnnotated, symbol.TypeWithAnnotations.NullableAnnotation);
             symbol = (LocalSymbol)model.GetDeclaredSymbol(declarators[1]);
-            Assert.Equal("T?", symbol.Type.ToTestDisplayString(true));
-            Assert.Equal(NullableAnnotation.Annotated, symbol.Type.NullableAnnotation);
+            Assert.Equal("T?", symbol.TypeWithAnnotations.ToTestDisplayString(true));
+            Assert.Equal(NullableAnnotation.Annotated, symbol.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -40641,7 +41531,7 @@ class C
             var model = comp.GetSemanticModel(tree);
             var declarator = tree.GetRoot().DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             var symbol = (LocalSymbol)model.GetDeclaredSymbol(declarator);
-            Assert.Equal("System.String!", symbol.Type.ToTestDisplayString(true));
+            Assert.Equal("System.String!", symbol.TypeWithAnnotations.ToTestDisplayString(true));
         }
 
         [Fact]
@@ -61036,7 +61926,7 @@ class Program
 
         [WorkItem(29049, "https://github.com/dotnet/roslyn/issues/29049")]
         [Fact]
-        public void TypeSymbolWithAnnotations_GetHashCode()
+        public void TypeWithAnnotations_GetHashCode()
         {
             var source =
 @"interface I<T> { }
@@ -61682,10 +62572,10 @@ class C {}
 
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B[]", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B[]", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
             var f2 = comp.GetMember<FieldSymbol>("A.F2");
-            Assert.Equal("C![]!", f2.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("C![]!", f2.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
             var tree = comp.SyntaxTrees.First();
             var model = comp.GetSemanticModel(tree);
@@ -61724,7 +62614,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -61748,7 +62638,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -61778,7 +62668,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -61804,7 +62694,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
             comp.VerifyDiagnostics(
                 // (8,6): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' context.
@@ -61838,7 +62728,7 @@ class A
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("System.String!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("System.String!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -61860,7 +62750,7 @@ class A
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("System.String", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("System.String", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -61891,7 +62781,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B[]!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B[]!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -61916,7 +62806,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B![]", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B![]", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -61947,7 +62837,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal(NullableAnnotation.NotAnnotated, f1.Type.NullableAnnotation);
+                Assert.Equal(NullableAnnotation.NotAnnotated, f1.TypeWithAnnotations.NullableAnnotation);
             }
         }
 
@@ -61972,7 +62862,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal(NullableAnnotation.Oblivious, f1.Type.NullableAnnotation);
+            Assert.Equal(NullableAnnotation.Oblivious, f1.TypeWithAnnotations.NullableAnnotation);
         }
 
         [Fact]
@@ -62003,7 +62893,7 @@ class B<T> {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B<A>!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B<A>!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62028,7 +62918,7 @@ class B<T> {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B<A!>", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B<A!>", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62065,7 +62955,7 @@ class var {}
                 var model = comp.GetSemanticModel(tree);
 
                 var decl = tree.GetRoot().DescendantNodes().OfType<DeclarationExpressionSyntax>().Single();
-                Assert.Equal("var!", ((LocalSymbol)model.GetDeclaredSymbol(decl.Designation)).Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("var!", ((LocalSymbol)model.GetDeclaredSymbol(decl.Designation)).TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62096,7 +62986,7 @@ class var {}
             var model = comp.GetSemanticModel(tree);
 
             var decl = tree.GetRoot().DescendantNodes().OfType<DeclarationExpressionSyntax>().Single();
-            Assert.Equal("var", ((LocalSymbol)model.GetDeclaredSymbol(decl.Designation)).Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("var", ((LocalSymbol)model.GetDeclaredSymbol(decl.Designation)).TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62738,7 +63628,7 @@ class C {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("C!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("C!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62763,7 +63653,7 @@ class C {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("C", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("C", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62797,7 +63687,7 @@ namespace C
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("C.B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("C.B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62825,7 +63715,7 @@ namespace C
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("C.B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("C.B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62859,7 +63749,7 @@ namespace C
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("C.B<A>!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("C.B<A>!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62887,7 +63777,7 @@ namespace C
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypesTrue());
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("C.B<A!>", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("C.B<A!>", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62917,7 +63807,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
             }
         }
 
@@ -62941,7 +63831,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(NullableContextOptions.SafeOnly));
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -62971,7 +63861,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -62994,7 +63884,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(NullableContextOptions.SafeOnly));
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
         }
 
         [Fact]
@@ -63014,7 +63904,7 @@ class B {}
             var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(NullableContextOptions.SafeOnly));
 
             var f1 = comp.GetMember<FieldSymbol>("A.F1");
-            Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+            Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
             comp.VerifyDiagnostics();
         }
@@ -63047,7 +63937,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics(
                     // (8,6): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' context.
@@ -63085,7 +63975,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics(
                     // (8,6): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' context.
@@ -63122,7 +64012,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics(
                     // (8,6): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' context.
@@ -63160,7 +64050,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics(
                     // (8,6): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' context.
@@ -63197,7 +64087,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63230,7 +64120,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63261,7 +64151,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63294,7 +64184,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: compilationOptions);
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63326,7 +64216,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63358,7 +64248,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63389,7 +64279,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63421,7 +64311,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B?", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B?", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63452,7 +64342,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -63482,7 +64372,7 @@ class B {}
                 var comp = CreateCompilation(new[] { source }, options: WithNonNullTypes(nullableContextOptions));
 
                 var f1 = comp.GetMember<FieldSymbol>("A.F1");
-                Assert.Equal("B!", f1.Type.ToTestDisplayString(includeNonNullable: true));
+                Assert.Equal("B!", f1.TypeWithAnnotations.ToTestDisplayString(includeNonNullable: true));
 
                 comp.VerifyDiagnostics();
             }
@@ -72200,7 +73090,7 @@ class B
             {
                 var name = "F" + (i + 1).ToString("00");
                 var f = b.GetMember<FieldSymbol>(name);
-                Assert.Equal(baseline[i].type, f.Type.ToTestDisplayString(true));
+                Assert.Equal(baseline[i].type, f.TypeWithAnnotations.ToTestDisplayString(true));
 
                 if (baseline[i].attribute == null)
                 {
@@ -79781,8 +80671,15 @@ class Program
     }
 }";
             var comp = CreateCompilation(source, options: WithNonNullTypesTrue());
-            // https://github.com/dotnet/roslyn/issues/31503: Report warning for `.Value.GetEnumerator()` calls.
-            comp.VerifyDiagnostics();
+
+            comp.VerifyDiagnostics(
+                // (11,27): warning CS8629: Nullable value type may be null.
+                //         foreach (var i in s) // 1
+                Diagnostic(ErrorCode.WRN_NullableValueTypeMayBeNull, "s").WithLocation(11, 27),
+                // (18,27): warning CS8629: Nullable value type may be null.
+                //         foreach (var i in t) // 2
+                Diagnostic(ErrorCode.WRN_NullableValueTypeMayBeNull, "t").WithLocation(18, 27)
+            );
         }
 
         [Fact]
