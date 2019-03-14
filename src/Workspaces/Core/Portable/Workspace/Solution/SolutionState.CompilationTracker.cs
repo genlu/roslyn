@@ -813,13 +813,17 @@ namespace Microsoft.CodeAnalysis
                     : state.DeclarationOnlyCompilation.ContainsSymbolsWithName(predicate, filter, cancellationToken);
             }
 
-            public ImmutableArray<TypeDeclarationInfo>? GetTopLevelTypeDeclarationInfosFromDeclarationOnlyCompilation(CancellationToken cancellationToken)
+            public ImmutableArray<T> VisitTopLevelTypeDeclarationsFromDeclarationOnlyCompilation<T>(
+                Func<string, bool> namespacePredicate,
+                Func<ITypeDeclaration, bool> typeDeclartionPredicate,
+                Func<ITypeDeclaration, string, T> create,
+                CancellationToken cancellationToken)
             {
                 // DO NOT expose declaration only compilation to outside since it can be held alive long time, we don't want to create any symbol from the declaration only compilation.
                 var state = this.ReadState();
                 return state.DeclarationOnlyCompilation == null
                     ? default
-                    : state.DeclarationOnlyCompilation.GetTopLevelTypeDeclarationInfos();
+                    : state.DeclarationOnlyCompilation.VisitTopLevelTypeDeclarations(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
             }
 
             /// <summary>

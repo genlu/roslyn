@@ -3188,6 +3188,10 @@ namespace Microsoft.CodeAnalysis
             return foundVersion;
         }
 
-        internal abstract ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(CancellationToken cancellationToken);
+        internal abstract ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
+            Func<string, bool> namespacePredicate,
+            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
+            Func<ITypeDeclaration, string, T> create,
+            CancellationToken cancellationToken);
     }
 }

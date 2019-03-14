@@ -369,16 +369,25 @@ namespace Microsoft.CodeAnalysis.CSharp
             return false;
         }
 
-        public ImmutableArray<TypeDeclarationInfo> GetTypeDeclarationInfos(CSharpCompilation compilation, CancellationToken cancellationToken)
+        public ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
+            CSharpCompilation compilation,
+            Func<string, bool> namespacePredicate,
+            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
+            Func<ITypeDeclaration, string, T> create,
+            CancellationToken cancellationToken)
         {
-            var builder = ArrayBuilder<TypeDeclarationInfo>.GetInstance();
-
-            // TODO: we probaably don't really need a merged root for this purpose
+            var builder = ArrayBuilder<T>.GetInstance();
             var root = GetMergedRoot(compilation);
-            VisitDeclaration(root, string.Empty, builder, cancellationToken);
+            var rootNamespace = root.Name;
+
+            VisitDeclaration(root, rootNamespace, namespacePredicate(rootNamespace));
+
             return builder.ToImmutableAndFree();
 
-            static void VisitDeclaration(Declaration declaration, string currentNamaspace, ArrayBuilder<TypeDeclarationInfo> builder, CancellationToken cancellationToken)
+            void VisitDeclaration(
+                Declaration declaration,
+                string currentNamaspace,
+                bool shouldVisitTypesInCurrentNamespace)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -386,47 +395,33 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     case DeclarationKind.Namespace:
                         currentNamaspace = ConcatNamespace(currentNamaspace, declaration.Name);
+                        shouldVisitTypesInCurrentNamespace = namespacePredicate(currentNamaspace);
                         foreach (var child in declaration.Children)
                         {
-                            VisitDeclaration(child, currentNamaspace, builder, cancellationToken);
+                            VisitDeclaration(child, currentNamaspace, shouldVisitTypesInCurrentNamespace);
                         }
                         break;
+
                     case DeclarationKind.Interface:
                     case DeclarationKind.Class:
                     case DeclarationKind.Struct:
                     case DeclarationKind.Delegate:
                     case DeclarationKind.Enum:
-                        builder.Add(HandleTypeDeclaration(declaration, currentNamaspace));
+                        if (shouldVisitTypesInCurrentNamespace)
+                        {
+                            var typeDeclaration = declaration as ITypeDeclaration;
+                            if (typeDeclartionPredicate(typeDeclaration))
+                            {
+                                builder.Add(create(typeDeclaration, currentNamaspace));
+                            }
+                        }
                         break;
                 }
             }
 
-            static TypeDeclarationInfo HandleTypeDeclaration(Declaration declaration, string currentNamaspace)
-            {
-                var typeKind = declaration.Kind.ToTypeKind();
-                int arity;
-                Accessibility accessibility;
-
-                if (declaration is SingleTypeDeclaration singleType)
-                {
-                    accessibility = ModifierUtils.EffectiveAccessibility(singleType.Modifiers);
-                    arity = singleType.Arity;
-                }
-                else
-                {
-                    var mergedType = (MergedTypeDeclaration)declaration;
-                    var aggregatedModifier = mergedType.Declarations.Select(d => d.Modifiers).Aggregate((a, b) => a | b);
-                    accessibility = ModifierUtils.EffectiveAccessibility(aggregatedModifier);
-                    arity = mergedType.Arity;
-                }
-
-                return new TypeDeclarationInfo(declaration.Name, currentNamaspace, typeKind, accessibility, arity);
-            }
-
             static string ConcatNamespace(string prefix, string name)
             {
-                Debug.Assert(prefix != null && name != null);
-                if (prefix.Length == 0)
+                if (string.IsNullOrEmpty(prefix))
                 {
                     return name;
                 }

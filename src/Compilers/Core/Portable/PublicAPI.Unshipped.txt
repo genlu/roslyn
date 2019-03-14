@@ -1,6 +1,11 @@
 *REMOVED*Microsoft.CodeAnalysis.Operations.IEventAssignmentOperation.EventReference.get -> Microsoft.CodeAnalysis.Operations.IEventReferenceOperation
 Microsoft.CodeAnalysis.CompilationExtensions
 Microsoft.CodeAnalysis.IFieldSymbol.IsFixedSizeBuffer.get -> bool
+Microsoft.CodeAnalysis.ITypeDeclaration
+Microsoft.CodeAnalysis.ITypeDeclaration.Accessibility.get -> Microsoft.CodeAnalysis.Accessibility
+Microsoft.CodeAnalysis.ITypeDeclaration.Arity.get -> int
+Microsoft.CodeAnalysis.ITypeDeclaration.Kind.get -> Microsoft.CodeAnalysis.TypeKind
+Microsoft.CodeAnalysis.ITypeDeclaration.Name.get -> string
 Microsoft.CodeAnalysis.ITypeSymbol.IsRefLikeType.get -> bool
 Microsoft.CodeAnalysis.ITypeSymbol.IsUnmanagedType.get -> bool
 Microsoft.CodeAnalysis.OperationKind.Binary = 32 -> Microsoft.CodeAnalysis.OperationKind
@@ -30,13 +35,6 @@ Microsoft.CodeAnalysis.Operations.ISwitchExpressionArmOperation.Value.get -> Mic
 Microsoft.CodeAnalysis.Operations.ISwitchExpressionOperation
 Microsoft.CodeAnalysis.Operations.ISwitchExpressionOperation.Arms.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Operations.ISwitchExpressionArmOperation>
 Microsoft.CodeAnalysis.Operations.ISwitchExpressionOperation.Value.get -> Microsoft.CodeAnalysis.IOperation
-Microsoft.CodeAnalysis.TypeDeclarationInfo
-Microsoft.CodeAnalysis.TypeDeclarationInfo.Accessibility.get -> Microsoft.CodeAnalysis.Accessibility
-Microsoft.CodeAnalysis.TypeDeclarationInfo.Arity.get -> int
-Microsoft.CodeAnalysis.TypeDeclarationInfo.ContainingNamespace.get -> string
-Microsoft.CodeAnalysis.TypeDeclarationInfo.Kind.get -> Microsoft.CodeAnalysis.TypeKind
-Microsoft.CodeAnalysis.TypeDeclarationInfo.Name.get -> string
-Microsoft.CodeAnalysis.TypeDeclarationInfo.TypeDeclarationInfo(string typeName, string namespaceName, Microsoft.CodeAnalysis.TypeKind kind, Microsoft.CodeAnalysis.Accessibility accessibility, int arity) -> void
 abstract Microsoft.CodeAnalysis.Compilation.ClassifyCommonConversion(Microsoft.CodeAnalysis.ITypeSymbol source, Microsoft.CodeAnalysis.ITypeSymbol destination) -> Microsoft.CodeAnalysis.Operations.CommonConversion
 abstract Microsoft.CodeAnalysis.Compilation.ContainsSymbolsWithName(string name, Microsoft.CodeAnalysis.SymbolFilter filter = Microsoft.CodeAnalysis.SymbolFilter.TypeAndMember, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> bool
 abstract Microsoft.CodeAnalysis.Compilation.GetSymbolsWithName(string name, Microsoft.CodeAnalysis.SymbolFilter filter = Microsoft.CodeAnalysis.SymbolFilter.TypeAndMember, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<Microsoft.CodeAnalysis.ISymbol>
@@ -194,7 +192,7 @@ const Microsoft.CodeAnalysis.WellKnownMemberNames.GetAsyncEnumeratorMethodName =
 const Microsoft.CodeAnalysis.WellKnownMemberNames.MoveNextAsyncMethodName = "MoveNextAsync" -> string
 override Microsoft.CodeAnalysis.FlowAnalysis.CaptureId.Equals(object obj) -> bool
 override Microsoft.CodeAnalysis.FlowAnalysis.CaptureId.GetHashCode() -> int
-static Microsoft.CodeAnalysis.CompilationExtensions.GetTopLevelTypeDeclarationInfos(this Microsoft.CodeAnalysis.Compilation compilation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.TypeDeclarationInfo>
+static Microsoft.CodeAnalysis.CompilationExtensions.VisitTopLevelTypeDeclarations<T>(this Microsoft.CodeAnalysis.Compilation compilation, System.Func<string, bool> namespacePredicate, System.Func<Microsoft.CodeAnalysis.ITypeDeclaration, bool> typeDeclartionPredicate, System.Func<Microsoft.CodeAnalysis.ITypeDeclaration, string, T> create, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Immutable.ImmutableArray<T>
 static Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(Microsoft.CodeAnalysis.Operations.IBlockOperation body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph
 static Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(Microsoft.CodeAnalysis.Operations.IConstructorBodyOperation constructorBody, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph
 static Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(Microsoft.CodeAnalysis.Operations.IFieldInitializerOperation initializer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph

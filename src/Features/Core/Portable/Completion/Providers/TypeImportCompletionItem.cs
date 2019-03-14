@@ -4,26 +4,44 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.Completion.Providers
 {
     internal static class TypeImportCompletionItem
     {
-        public static CompletionItem Create(TypeDeclarationInfo declarationInfo)
+        public static CompletionItem Create(ITypeDeclaration typeDeclaration, string containingNamespace)
         {
             var metadataname = ComposeAritySuffixedMetadataName(
-                GetFullyQualifiedName(declarationInfo.ContainingNamespace, declarationInfo.Name),
-                declarationInfo.Arity);
+                GetFullyQualifiedName(containingNamespace, typeDeclaration.Name),
+                typeDeclaration.Arity);
 
             return CommonCompletionItem.Create(
-                declarationInfo.Arity == 0 ? declarationInfo.Name : declarationInfo.Name + "<>",
-                displayTextSuffix: $" (in {declarationInfo.ContainingNamespace})",
+                typeDeclaration.Arity == 0 ? typeDeclaration.Name : typeDeclaration.Name + "<>",
+                displayTextSuffix: $" (in {containingNamespace})",
                 CompletionItemRules.Default,
-                glyph: GetGlyph(declarationInfo),
-                sortText: declarationInfo.Name,
+                glyph: GetGlyph(typeDeclaration),
+                sortText: typeDeclaration.Name,
                 properties: ImmutableDictionary<string, string>.Empty
                     .Add(MetadataNameString, metadataname)
-                    .Add(ContainingNamespaceString, declarationInfo.ContainingNamespace));
+                    .Add(ContainingNamespaceString, containingNamespace));
+        }
+
+        public static CompletionItem Create(INamedTypeSymbol typeSymbol, string containingNamespace)
+        {
+            var metadataname = ComposeAritySuffixedMetadataName(
+                GetFullyQualifiedName(containingNamespace, typeSymbol.Name),
+                typeSymbol.Arity);
+
+            return CommonCompletionItem.Create(
+                typeSymbol.Arity == 0 ? typeSymbol.Name : typeSymbol.Name + "<>",
+                displayTextSuffix: $" (in {containingNamespace})",
+                CompletionItemRules.Default,
+                glyph: typeSymbol.GetGlyph(),
+                sortText: typeSymbol.Name,
+                properties: ImmutableDictionary<string, string>.Empty
+                    .Add(MetadataNameString, metadataname)
+                    .Add(ContainingNamespaceString, containingNamespace));
         }
 
         public static bool TryGetMetadataName(CompletionItem item, out string metadataName)
@@ -65,10 +83,10 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             return arity == 0 ? name : name + GetAritySuffix(arity);
         }
 
-        private static Glyph GetGlyph(TypeDeclarationInfo declarationInfo)
+        private static Glyph GetGlyph(ITypeDeclaration typeDeclaration)
         {
             Glyph publicIcon;
-            switch (declarationInfo.Kind)
+            switch (typeDeclaration.Kind)
             {
                 case TypeKind.Interface:
                     publicIcon = Glyph.InterfacePublic;
@@ -89,7 +107,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                     throw new ArgumentException();
             }
 
-            switch (declarationInfo.Accessibility)
+            switch (typeDeclaration.Accessibility)
             {
                 case Accessibility.Private:
                     publicIcon += Glyph.ClassPrivate - Glyph.ClassPublic;

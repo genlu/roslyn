@@ -1905,12 +1905,17 @@ namespace Microsoft.CodeAnalysis
         }
 
 
-        public async Task<ImmutableArray<TypeDeclarationInfo>> GetTopLevelTypeDeclarationInfosAsync(ProjectId id, CancellationToken cancellationToken)
+        public async Task<ImmutableArray<T>> VisitTopLevelTypeDeclarationsAsync<T>(
+            ProjectId id,
+            Func<string, bool> namespacePredicate,
+            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
+            Func<ITypeDeclaration, string, T> create,
+            CancellationToken cancellationToken)
         {
-            var result = GetCompilationTracker(id).GetTopLevelTypeDeclarationInfosFromDeclarationOnlyCompilation(cancellationToken);
-            if (result.HasValue)
+            var result = GetCompilationTracker(id).VisitTopLevelTypeDeclarationsFromDeclarationOnlyCompilation(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
+            if (!result.IsDefault)
             {
-                return result.Value;
+                return result;
             }
 
             // it looks like declaration compilation doesn't exist yet. we have to build full compilation
@@ -1918,10 +1923,10 @@ namespace Microsoft.CodeAnalysis
             if (compilation == null)
             {
                 // some projects don't support compilations (e.g., TypeScript) so there's nothing to check
-                return ImmutableArray<TypeDeclarationInfo>.Empty;
+                return ImmutableArray<T>.Empty;
             }
 
-            return compilation.GetTopLevelTypeDeclarationInfos();
+            return compilation.VisitTopLevelTypeDeclarations(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
         }
 
         public async Task<ImmutableArray<DocumentState>> GetDocumentsWithNameAsync(

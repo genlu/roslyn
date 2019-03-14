@@ -250,11 +250,15 @@ namespace Microsoft.CodeAnalysis
                    await _solution.State.ContainsSymbolsWithNameAsync(Id, predicate, filter, cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task<ImmutableArray<TypeDeclarationInfo>> GetTopLevelTypeDeclarationInfosAsync(CancellationToken cancellationToken)
+        internal async Task<ImmutableArray<T>> VisitTopLevelTypeDeclarationsAsync<T>(
+            Func<string, bool> namespacePredicate,
+            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
+            Func<ITypeDeclaration, string, T> create,
+            CancellationToken cancellationToken)
         {
             return this.SupportsCompilation
-                ? await _solution.State.GetTopLevelTypeDeclarationInfosAsync(Id, cancellationToken).ConfigureAwait(false)
-                : ImmutableArray<TypeDeclarationInfo>.Empty;
+                ? await _solution.State.VisitTopLevelTypeDeclarationsAsync(Id, namespacePredicate, typeDeclartionPredicate, create, cancellationToken).ConfigureAwait(false)
+                : ImmutableArray<T>.Empty;
         }
 
         internal async Task<IEnumerable<Document>> GetDocumentsWithNameAsync(Func<string, bool> predicate, SymbolFilter filter, CancellationToken cancellationToken)

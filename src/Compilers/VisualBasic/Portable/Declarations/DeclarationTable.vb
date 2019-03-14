@@ -368,53 +368,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
-        Public Function GetTypeDeclarationInfos(compilation As VisualBasicCompilation, cancellationToken As CancellationToken) As ImmutableArray(Of TypeDeclarationInfo)
-            Dim builder = ArrayBuilder(Of TypeDeclarationInfo).GetInstance()
+        Public Function VisitTopLevelTypeDeclarations(Of T)(
+                compilation As VisualBasicCompilation,
+                namespacePredicate As Func(Of String, Boolean),
+                typeDeclarationPredicate As Func(Of ITypeDeclaration, Boolean),
+                create As Func(Of ITypeDeclaration, String, T),
+                cancellationToken As CancellationToken) As ImmutableArray(Of T)
+
+            Dim builder = ArrayBuilder(Of T).GetInstance()
             Dim root = GetMergedRoot(compilation)
-            VisitDeclaration(root, String.Empty, builder, cancellationToken)
+            Dim rootNamespace = root.Name
+
+            Dim visitDeclaration As Action(Of Declaration, String, Boolean) =
+                Sub(declaration As Declaration, currentNamespace As String, shouldVisitTypesInCurrentNamespace As Boolean)
+
+                    cancellationToken.ThrowIfCancellationRequested()
+
+                    Select Case declaration.Kind
+                        Case DeclarationKind.Namespace
+                            currentNamespace = ConcatNamespace(currentNamespace, declaration.Name)
+                            shouldVisitTypesInCurrentNamespace = namespacePredicate(currentNamespace)
+
+                            For Each child In declaration.Children
+                                visitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace)
+                            Next
+
+                        Case DeclarationKind.Class,
+                             DeclarationKind.Interface,
+                             DeclarationKind.Structure,
+                             DeclarationKind.Enum,
+                             DeclarationKind.Delegate
+                            If shouldVisitTypesInCurrentNamespace Then
+                                Dim typeDeclaration = TryCast(declaration, ITypeDeclaration)
+
+                                If (typeDeclarationPredicate(typeDeclaration)) Then
+                                    builder.Add(create(typeDeclaration, currentNamespace))
+                                End If
+                            End If
+                    End Select
+                End Sub
+
+            visitDeclaration(root, rootNamespace, namespacePredicate(rootNamespace))
             Return builder.ToImmutableAndFree()
-        End Function
 
-        Private Shared Sub VisitDeclaration(declaration As Declaration, currentNamespace As String, builder As ArrayBuilder(Of TypeDeclarationInfo), cancellationToken As CancellationToken)
-            cancellationToken.ThrowIfCancellationRequested()
-
-            Select Case declaration.Kind
-                Case DeclarationKind.Namespace
-                    currentNamespace = ConcatNamespace(currentNamespace, declaration.Name)
-                    For Each child In declaration.Children
-                        VisitDeclaration(child, currentNamespace, builder, cancellationToken)
-                    Next
-
-                Case DeclarationKind.Class,
-                     DeclarationKind.Interface,
-                     DeclarationKind.Structure,
-                     DeclarationKind.Enum,
-                     DeclarationKind.Delegate
-                    builder.Add(HandleTypeDeclaration(declaration, currentNamespace))
-            End Select
-
-        End Sub
-
-        Private Shared Function HandleTypeDeclaration(declaration As Declaration, currentNamespace As String) As TypeDeclarationInfo
-            Dim typeKind = declaration.Kind.ToTypeKind()
-            Dim accessibility As Accessibility
-            Dim arity As Integer
-
-            If TypeOf declaration Is SingleTypeDeclaration Then
-                Dim singleType = DirectCast(declaration, SingleTypeDeclaration)
-                accessibility = singleType.Modifiers.ToAccessibility()
-                arity = singleType.Arity
-            Else
-                Dim mergedType = DirectCast(declaration, MergedTypeDeclaration)
-                accessibility = mergedType.Declarations.Select(Function(d) d.Modifiers).Aggregate(Function(a, b) a Or b).ToAccessibility()
-                arity = mergedType.Arity
-            End If
-
-            Return New TypeDeclarationInfo(declaration.Name, currentNamespace, typeKind, accessibility, arity)
         End Function
 
         Private Shared Function ConcatNamespace(prefix As String, name As String) As String
-            If prefix.Length = 0 Then
+            If String.IsNullOrEmpty(prefix) Then
                 Return name
             End If
 

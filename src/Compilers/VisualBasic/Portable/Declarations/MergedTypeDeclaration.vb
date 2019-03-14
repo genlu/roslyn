@@ -1,14 +1,8 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System
-Imports System.Collections.Generic
 Imports System.Collections.Immutable
-Imports System.Diagnostics
-Imports System.Linq
 Imports System.Threading
-Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.PooledObjects
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -17,6 +11,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ' declarations.
     Friend NotInheritable Class MergedTypeDeclaration
         Inherits MergedNamespaceOrTypeDeclaration
+        Implements ITypeDeclaration
 
         Private _declarations As ImmutableArray(Of SingleTypeDeclaration)
         Private _children As MergedTypeDeclaration()
@@ -185,5 +180,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private ReadOnly Property ITypeDeclaration_Name As String Implements ITypeDeclaration.Name
+            Get
+                Return Me.Name
+            End Get
+        End Property
+
+        Private ReadOnly Property ITypeDeclaration_Kind As TypeKind Implements ITypeDeclaration.Kind
+            Get
+                Return Me.Kind.ToTypeKind()
+            End Get
+        End Property
+
+        Public ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
+            Get
+                Return Me.Declarations.Select(Function(d) d.Modifiers).Aggregate(Function(a, b) a Or b).ToAccessibility()
+            End Get
+        End Property
+
+        Private ReadOnly Property ITypeDeclaration_Arity As Integer Implements ITypeDeclaration.Arity
+            Get
+                Return Me.Arity
+            End Get
+        End Property
     End Class
 End Namespace
