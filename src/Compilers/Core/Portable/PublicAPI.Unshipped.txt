@@ -1,10 +1,15 @@
 *REMOVED*Microsoft.CodeAnalysis.Operations.IEventAssignmentOperation.EventReference.get -> Microsoft.CodeAnalysis.Operations.IEventReferenceOperation
 Microsoft.CodeAnalysis.CompilationExtensions
+Microsoft.CodeAnalysis.INamespaceDeclaration
+Microsoft.CodeAnalysis.INamespaceDeclaration.Children.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.INamespaceOrTypeDeclaration>
+Microsoft.CodeAnalysis.INamespaceOrTypeDeclaration
+Microsoft.CodeAnalysis.INamespaceOrTypeDeclaration.IsNamespace.get -> bool
+Microsoft.CodeAnalysis.INamespaceOrTypeDeclaration.IsType.get -> bool
+Microsoft.CodeAnalysis.INamespaceOrTypeDeclaration.Name.get -> string
 Microsoft.CodeAnalysis.ITypeDeclaration
 Microsoft.CodeAnalysis.ITypeDeclaration.Accessibility.get -> Microsoft.CodeAnalysis.Accessibility
 Microsoft.CodeAnalysis.ITypeDeclaration.Arity.get -> int
-Microsoft.CodeAnalysis.ITypeDeclaration.Kind.get -> Microsoft.CodeAnalysis.TypeKind
-Microsoft.CodeAnalysis.ITypeDeclaration.Name.get -> string
+Microsoft.CodeAnalysis.ITypeDeclaration.TypeKind.get -> Microsoft.CodeAnalysis.TypeKind
 abstract Microsoft.CodeAnalysis.Compilation.ClassifyCommonConversion(Microsoft.CodeAnalysis.ITypeSymbol source, Microsoft.CodeAnalysis.ITypeSymbol destination) -> Microsoft.CodeAnalysis.Operations.CommonConversion
 abstract Microsoft.CodeAnalysis.Compilation.ContainsSymbolsWithName(string name, Microsoft.CodeAnalysis.SymbolFilter filter = Microsoft.CodeAnalysis.SymbolFilter.TypeAndMember, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> bool
 abstract Microsoft.CodeAnalysis.Compilation.GetSymbolsWithName(string name, Microsoft.CodeAnalysis.SymbolFilter filter = Microsoft.CodeAnalysis.SymbolFilter.TypeAndMember, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<Microsoft.CodeAnalysis.ISymbol>
@@ -192,6 +197,7 @@ Microsoft.CodeAnalysis.SymbolDisplayPartKind.EnumMemberName = 28 -> Microsoft.Co
 Microsoft.CodeAnalysis.SymbolDisplayPartKind.ExtensionMethodName = 29 -> Microsoft.CodeAnalysis.SymbolDisplayPartKind
 override Microsoft.CodeAnalysis.FlowAnalysis.CaptureId.Equals(object obj) -> bool
 override Microsoft.CodeAnalysis.FlowAnalysis.CaptureId.GetHashCode() -> int
+static Microsoft.CodeAnalysis.CompilationExtensions.GetDeclarationRoot(this Microsoft.CodeAnalysis.Compilation compilation) -> Microsoft.CodeAnalysis.INamespaceDeclaration
 static Microsoft.CodeAnalysis.CompilationExtensions.VisitTopLevelTypeDeclarations<T>(this Microsoft.CodeAnalysis.Compilation compilation, System.Func<string, bool> namespacePredicate, System.Func<Microsoft.CodeAnalysis.ITypeDeclaration, bool> typeDeclartionPredicate, System.Func<Microsoft.CodeAnalysis.ITypeDeclaration, string, T> create, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Immutable.ImmutableArray<T>
 static Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(Microsoft.CodeAnalysis.Operations.IBlockOperation body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph
 static Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(Microsoft.CodeAnalysis.Operations.IConstructorBodyOperation constructorBody, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph

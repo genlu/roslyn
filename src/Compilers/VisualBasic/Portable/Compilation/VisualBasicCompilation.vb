@@ -298,6 +298,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
+        Friend Overrides Function GetDeclarationRoot() As INamespaceDeclaration
+            Return Declarations.GetDeclarationRoot(Me)
+        End Function
+
         Friend Overrides Function VisitTopLevelTypeDeclarations(Of T)(
                 namespacePredicate As Func(Of String, Boolean),
                 typeDeclarationPredicate As Func(Of ITypeDeclaration, Boolean),

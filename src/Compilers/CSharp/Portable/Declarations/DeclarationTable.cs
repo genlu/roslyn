@@ -367,6 +367,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             return false;
         }
 
+        public INamespaceDeclaration GetDeclarationRoot(CSharpCompilation compilation)
+        {
+            return GetMergedRoot(compilation);
+        }
+
         public ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
             CSharpCompilation compilation,
             Func<string, bool> namespacePredicate,

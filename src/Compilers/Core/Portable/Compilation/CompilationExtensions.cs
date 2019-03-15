@@ -17,5 +17,10 @@ namespace Microsoft.CodeAnalysis
         {
             return compilation.VisitTopLevelTypeDeclarations<T>(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
         }
+
+        public static INamespaceDeclaration GetDeclarationRoot(this Compilation compilation)
+        {
+            return compilation.GetDeclarationRoot();
+        }
     }
 }

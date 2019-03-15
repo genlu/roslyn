@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-    internal class SingleNamespaceDeclaration : SingleNamespaceOrTypeDeclaration
+    internal class SingleNamespaceDeclaration : SingleNamespaceOrTypeDeclaration, INamespaceDeclaration
     {
         private readonly ImmutableArray<SingleNamespaceOrTypeDeclaration> _children;
 
@@ -71,5 +71,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     name, hasUsings, hasExternAliases, syntaxReference, nameLocation, children, diagnostics);
             }
         }
+
+        ImmutableArray<INamespaceOrTypeDeclaration> INamespaceDeclaration.Children 
+            => this.Children.SelectAsArray(d => (INamespaceOrTypeDeclaration)d);
+
     }
 }

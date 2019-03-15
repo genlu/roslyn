@@ -226,19 +226,20 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        string ITypeDeclaration.Name => this.Name;
-
-        TypeKind ITypeDeclaration.Kind => this.Kind.ToTypeKind();
+        TypeKind ITypeDeclaration.TypeKind => this.Kind.ToTypeKind();
 
         Accessibility ITypeDeclaration.Accessibility
         {
             get
             {
-                var aggregatedModifier = this.Declarations.Select(d => d.Modifiers).Aggregate((a, b) => a | b);
+                DeclarationModifiers aggregatedModifier = DeclarationModifiers.None;
+                foreach (var declaration in this.Declarations)
+                {
+                    aggregatedModifier |= declaration.Modifiers;
+                }
+
                 return ModifierUtils.EffectiveAccessibility(aggregatedModifier);
             }
         }
-
-        int ITypeDeclaration.Arity => this.Arity;
     }
 }

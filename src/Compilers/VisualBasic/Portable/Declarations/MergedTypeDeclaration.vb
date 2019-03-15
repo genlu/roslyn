@@ -51,7 +51,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Public ReadOnly Property Arity As Integer
+        Public ReadOnly Property Arity As Integer Implements ITypeDeclaration.Arity
             Get
                 Return Me.Declarations(0).Arity
             End Get
@@ -180,27 +180,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Private ReadOnly Property ITypeDeclaration_Name As String Implements ITypeDeclaration.Name
-            Get
-                Return Me.Name
-            End Get
-        End Property
-
-        Private ReadOnly Property ITypeDeclaration_Kind As TypeKind Implements ITypeDeclaration.Kind
+        Private ReadOnly Property ITypeDeclaration_TypeKind As TypeKind Implements ITypeDeclaration.TypeKind
             Get
                 Return Me.Kind.ToTypeKind()
             End Get
         End Property
 
-        Public ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
+        Private ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
             Get
-                Return Me.Declarations.Select(Function(d) d.Modifiers).Aggregate(Function(a, b) a Or b).ToAccessibility()
-            End Get
-        End Property
+                Dim aggregateModifiers = DeclarationModifiers.None
+                For Each declaration In Me.Declarations
+                    aggregateModifiers = aggregateModifiers Or declaration.Modifiers
+                Next
 
-        Private ReadOnly Property ITypeDeclaration_Arity As Integer Implements ITypeDeclaration.Arity
-            Get
-                Return Me.Arity
+                Return aggregateModifiers.ToAccessibility()
             End Get
         End Property
     End Class

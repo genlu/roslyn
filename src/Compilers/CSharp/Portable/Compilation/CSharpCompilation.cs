@@ -3247,6 +3247,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        internal override INamespaceDeclaration GetDeclarationRoot()
+        {
+            return Declarations.GetDeclarationRoot(this);
+        }
+
         internal override ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
             Func<string, bool> namespacePredicate,
             Func<ITypeDeclaration, bool> typeDeclartionPredicate,

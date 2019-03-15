@@ -11,6 +11,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     ' Note: Namespace Global has empty string as a name, as well as namespaces with errors
     Friend Class SingleNamespaceDeclaration
         Inherits SingleNamespaceOrTypeDeclaration
+        Implements INamespaceDeclaration
 
         Private ReadOnly _children As ImmutableArray(Of SingleNamespaceOrTypeDeclaration)
         Public Property HasImports As Boolean
@@ -38,6 +39,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property Kind As DeclarationKind
             Get
                 Return DeclarationKind.Namespace
+            End Get
+        End Property
+
+        Private ReadOnly Property INamespaceDeclaration_Children As ImmutableArray(Of INamespaceOrTypeDeclaration) Implements INamespaceDeclaration.Children
+            Get
+                Return Me.Children.SelectAsArray(Function(d) CType(d, INamespaceOrTypeDeclaration))
             End Get
         End Property
 

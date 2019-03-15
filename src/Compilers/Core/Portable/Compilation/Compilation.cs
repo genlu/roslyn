@@ -3193,5 +3193,7 @@ namespace Microsoft.CodeAnalysis
             Func<ITypeDeclaration, bool> typeDeclartionPredicate,
             Func<ITypeDeclaration, string, T> create,
             CancellationToken cancellationToken);
+
+        internal abstract INamespaceDeclaration GetDeclarationRoot();
     }
 }

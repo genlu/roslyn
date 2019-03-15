@@ -137,13 +137,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        string ITypeDeclaration.Name => this.Name;
-
-        TypeKind ITypeDeclaration.Kind => this.Kind.ToTypeKind();
+        TypeKind ITypeDeclaration.TypeKind => this.Kind.ToTypeKind();
 
         Accessibility ITypeDeclaration.Accessibility => ModifierUtils.EffectiveAccessibility(this.Modifiers);
-
-        int ITypeDeclaration.Arity => this.Arity;
 
         // identity that is used when collecting all declarations 
         // of same type across multiple containers

@@ -53,7 +53,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Public ReadOnly Property Arity As Integer
+        Public ReadOnly Property Arity As Integer Implements ITypeDeclaration.Arity
             Get
                 Return _arity
             End Get
@@ -97,27 +97,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public ReadOnly Property MemberNames As ImmutableHashSet(Of String)
 
-        Private ReadOnly Property ITypeDeclaration_Name As String Implements ITypeDeclaration.Name
-            Get
-                Return Me.Name
-            End Get
-        End Property
-
-        Private ReadOnly Property ITypeDeclaration_Kind As TypeKind Implements ITypeDeclaration.Kind
+        Private ReadOnly Property ITypeDeclaration_TypeKind As TypeKind Implements ITypeDeclaration.TypeKind
             Get
                 Return Me.Kind.ToTypeKind()
             End Get
         End Property
 
-        Public ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
+        Private ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
             Get
                 Return Me.Modifiers.ToAccessibility()
-            End Get
-        End Property
-
-        Private ReadOnly Property ITypeDeclaration_Arity As Integer Implements ITypeDeclaration.Arity
-            Get
-                Return Me.Arity
             End Get
         End Property
 

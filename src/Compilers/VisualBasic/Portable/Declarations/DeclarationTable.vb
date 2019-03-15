@@ -368,12 +368,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
+        Public Function GetDeclarationRoot(compilation As VisualBasicCompilation) As INamespaceDeclaration
+            Return GetMergedRoot(compilation)
+        End Function
+
         Public Function VisitTopLevelTypeDeclarations(Of T)(
                 compilation As VisualBasicCompilation,
                 namespacePredicate As Func(Of String, Boolean),
                 typeDeclarationPredicate As Func(Of ITypeDeclaration, Boolean),
                 create As Func(Of ITypeDeclaration, String, T),
-                cancellationToken As CancellationToken) As ImmutableArray(Of T)
+                CancellationToken As CancellationToken) As ImmutableArray(Of T)
 
             Dim builder = ArrayBuilder(Of T).GetInstance()
             Dim root = GetMergedRoot(compilation)
@@ -382,7 +386,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Dim visitDeclaration As Action(Of Declaration, String, Boolean) =
                 Sub(declaration As Declaration, currentNamespace As String, shouldVisitTypesInCurrentNamespace As Boolean)
 
-                    cancellationToken.ThrowIfCancellationRequested()
+                    CancellationToken.ThrowIfCancellationRequested()
 
                     Select Case declaration.Kind
                         Case DeclarationKind.Namespace
