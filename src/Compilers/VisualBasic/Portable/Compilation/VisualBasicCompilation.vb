@@ -302,14 +302,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Declarations.GetDeclarationRoot(Me)
         End Function
 
-        Friend Overrides Function VisitTopLevelTypeDeclarations(Of T)(
-                namespacePredicate As Func(Of String, Boolean),
-                typeDeclarationPredicate As Func(Of ITypeDeclaration, Boolean),
-                create As Func(Of ITypeDeclaration, String, T),
-                cancellationToken As CancellationToken) As ImmutableArray(Of T)
-            Return Declarations.VisitTopLevelTypeDeclarations(Me, namespacePredicate, typeDeclarationPredicate, create, cancellationToken)
-        End Function
-
 #Region "Constructors and Factories"
 
         ''' <summary>

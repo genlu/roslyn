@@ -8,16 +8,6 @@ namespace Microsoft.CodeAnalysis
 {
     public static class CompilationExtensions
     {
-        public static ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
-            this Compilation compilation,
-            Func<string, bool> namespacePredicate,
-            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
-            Func<ITypeDeclaration, string, T> create,
-            CancellationToken cancellationToken = default)
-        {
-            return compilation.VisitTopLevelTypeDeclarations<T>(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
-        }
-
         public static INamespaceDeclaration GetDeclarationRoot(this Compilation compilation)
         {
             return compilation.GetDeclarationRoot();

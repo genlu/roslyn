@@ -209,12 +209,16 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         {
             var tick = Environment.TickCount;
 
+            var builder = ArrayBuilder<CompletionItem>.GetInstance();
+            var root = await fromProject.GetDeclarationRootAsync(cancellationToken).ConfigureAwait(false);
+            var rootNamespace = root.Name;
+
             var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
 
-            var items = await fromProject.VisitTopLevelTypeDeclarationsAsync((@namespace) => !namespacesInScope.Contains(@namespace),
-                                                                             typeDeclaration => typeDeclaration.Accessibility >= minimumAccessibility,
-                                                                             TypeImportCompletionItem.Create,
-                                                                             cancellationToken).ConfigureAwait(false);
+            VisitDeclaration(root, rootNamespace, namespacesInScope.Contains(rootNamespace));
+
+            var items = builder.ToImmutableAndFree();
+
             tick = Environment.TickCount - tick;
 
             _debug_total_compilation++;
@@ -222,6 +226,33 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             _debug_total_compilation_time += tick;
 
             return items;
+
+            void VisitDeclaration(
+                INamespaceOrTypeDeclaration declaration,
+                string currentNamespace,
+                bool shouldVisitTypesInCurrentNamespace)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (declaration.IsNamespace)
+                {
+                    var namespaceDeclaration = (INamespaceDeclaration)declaration;
+                    currentNamespace = ConcatNamespace(currentNamespace, namespaceDeclaration.Name);
+                    shouldVisitTypesInCurrentNamespace = namespacesInScope.Contains(currentNamespace);
+                    foreach (var child in namespaceDeclaration.Children)
+                    {
+                        VisitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace);
+                    }
+                }
+                else if (shouldVisitTypesInCurrentNamespace)
+                {
+                    var typeDeclaration = (ITypeDeclaration)declaration;
+                    if (typeDeclaration.Accessibility >= minimumAccessibility)
+                    {
+                        builder.Add(TypeImportCompletionItem.Create(typeDeclaration, currentNamespace));
+                    }
+                }
+            }
         }
 
         private ImmutableArray<CompletionItem> GetAccessibleOutOfScopeTopLevelDeclarationsFromAssembly(
@@ -240,57 +271,51 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             _debug_total_pe_time += tick;
 
             return items;
-        }
 
-        private static bool IsTypeOutOfScopeButAccessible(ITypeDeclaration typeDeclaration, bool isInternalsVisible)
-        {
-            var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
-            return typeDeclaration.Accessibility >= minimumAccessibility;
-        }
-
-        public static ImmutableArray<CompletionItem> GetCompletionItemsForTopLevelTypeDeclarations(IAssemblySymbol assemblySymbol, ImmutableHashSet<string> namespacesInScope, bool isInternalsVisible)
-        {
-            var builder = ArrayBuilder<CompletionItem>.GetInstance();
-            var root = assemblySymbol.GlobalNamespace;
-            var rootNamespace = assemblySymbol.ToDisplayString(QualifiedNameOnlyFormat);
-
-            var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
-
-            VisitSymbol(root, null, namespacesInScope.Contains(rootNamespace));
-            return builder.ToImmutableAndFree();
-
-            void VisitSymbol(ISymbol symbol, string containingNamespace, bool shouldVisitTypesInCurrentNamespace)
+            static ImmutableArray<CompletionItem> GetCompletionItemsForTopLevelTypeDeclarations(IAssemblySymbol assemblySymbol, ImmutableHashSet<string> namespacesInScope, bool isInternalsVisible)
             {
-                if (symbol is INamespaceSymbol namespaceSymbol)
-                {
-                    containingNamespace = ConcatNamespace(containingNamespace, namespaceSymbol.Name);
-                    shouldVisitTypesInCurrentNamespace = !namespacesInScope.Contains(containingNamespace);
+                var builder = ArrayBuilder<CompletionItem>.GetInstance();
+                var root = assemblySymbol.GlobalNamespace;
+                var rootNamespace = assemblySymbol.ToDisplayString(QualifiedNameOnlyFormat);
 
-                    foreach (var memberSymbol in namespaceSymbol.GetMembers())
+                var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
+
+                VisitSymbol(root, null, namespacesInScope.Contains(rootNamespace));
+                return builder.ToImmutableAndFree();
+
+                void VisitSymbol(ISymbol symbol, string containingNamespace, bool shouldVisitTypesInCurrentNamespace)
+                {
+                    if (symbol is INamespaceSymbol namespaceSymbol)
                     {
-                        VisitSymbol(memberSymbol, containingNamespace, shouldVisitTypesInCurrentNamespace);
+                        containingNamespace = ConcatNamespace(containingNamespace, namespaceSymbol.Name);
+                        shouldVisitTypesInCurrentNamespace = !namespacesInScope.Contains(containingNamespace);
+
+                        foreach (var memberSymbol in namespaceSymbol.GetMembers())
+                        {
+                            VisitSymbol(memberSymbol, containingNamespace, shouldVisitTypesInCurrentNamespace);
+                        }
+                    }
+                    else if (shouldVisitTypesInCurrentNamespace
+                        && symbol is INamedTypeSymbol typeSymbol
+                        && typeSymbol.DeclaredAccessibility >= minimumAccessibility)
+                    {
+                        Debug.Assert(containingNamespace != null);
+                        var item = TypeImportCompletionItem.Create(typeSymbol, containingNamespace);
+                        builder.Add(item);
                     }
                 }
-                else if (shouldVisitTypesInCurrentNamespace
-                    && symbol is INamedTypeSymbol typeSymbol
-                    && typeSymbol.DeclaredAccessibility >= minimumAccessibility)
-                {
-                    Debug.Assert(containingNamespace != null);
-                    var item = TypeImportCompletionItem.Create(typeSymbol, containingNamespace);
-                    builder.Add(item);
-                }
             }
+        }
 
-            static string ConcatNamespace(string containingNamespace, string name)
+        private static string ConcatNamespace(string containingNamespace, string name)
+        {
+            Debug.Assert(name != null);
+            if (string.IsNullOrEmpty(containingNamespace))
             {
-                Debug.Assert(name != null);
-                if (containingNamespace == null || containingNamespace.Length == 0)
-                {
-                    return name;
-                }
-
-                return containingNamespace + "." + name;
+                return name;
             }
+
+            return containingNamespace + "." + name;
         }
 
         private string DebugText => string.Format(

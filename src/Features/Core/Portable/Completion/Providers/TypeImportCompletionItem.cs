@@ -86,7 +86,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         private static Glyph GetGlyph(ITypeDeclaration typeDeclaration)
         {
             Glyph publicIcon;
-            switch (typeDeclaration.Kind)
+            switch (typeDeclaration.TypeKind)
             {
                 case TypeKind.Interface:
                     publicIcon = Glyph.InterfacePublic;

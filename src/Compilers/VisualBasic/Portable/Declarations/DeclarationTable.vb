@@ -371,59 +371,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Function GetDeclarationRoot(compilation As VisualBasicCompilation) As INamespaceDeclaration
             Return GetMergedRoot(compilation)
         End Function
-
-        Public Function VisitTopLevelTypeDeclarations(Of T)(
-                compilation As VisualBasicCompilation,
-                namespacePredicate As Func(Of String, Boolean),
-                typeDeclarationPredicate As Func(Of ITypeDeclaration, Boolean),
-                create As Func(Of ITypeDeclaration, String, T),
-                CancellationToken As CancellationToken) As ImmutableArray(Of T)
-
-            Dim builder = ArrayBuilder(Of T).GetInstance()
-            Dim root = GetMergedRoot(compilation)
-            Dim rootNamespace = root.Name
-
-            Dim visitDeclaration As Action(Of Declaration, String, Boolean) =
-                Sub(declaration As Declaration, currentNamespace As String, shouldVisitTypesInCurrentNamespace As Boolean)
-
-                    CancellationToken.ThrowIfCancellationRequested()
-
-                    Select Case declaration.Kind
-                        Case DeclarationKind.Namespace
-                            currentNamespace = ConcatNamespace(currentNamespace, declaration.Name)
-                            shouldVisitTypesInCurrentNamespace = namespacePredicate(currentNamespace)
-
-                            For Each child In declaration.Children
-                                visitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace)
-                            Next
-
-                        Case DeclarationKind.Class,
-                             DeclarationKind.Interface,
-                             DeclarationKind.Structure,
-                             DeclarationKind.Enum,
-                             DeclarationKind.Delegate
-                            If shouldVisitTypesInCurrentNamespace Then
-                                Dim typeDeclaration = TryCast(declaration, ITypeDeclaration)
-
-                                If (typeDeclarationPredicate(typeDeclaration)) Then
-                                    builder.Add(create(typeDeclaration, currentNamespace))
-                                End If
-                            End If
-                    End Select
-                End Sub
-
-            visitDeclaration(root, rootNamespace, namespacePredicate(rootNamespace))
-            Return builder.ToImmutableAndFree()
-
-        End Function
-
-        Private Shared Function ConcatNamespace(prefix As String, name As String) As String
-            If String.IsNullOrEmpty(prefix) Then
-                Return name
-            End If
-
-            Return prefix + "." + name
-        End Function
     End Class
 
 End Namespace

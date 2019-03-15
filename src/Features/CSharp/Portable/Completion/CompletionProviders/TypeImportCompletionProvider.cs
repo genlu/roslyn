@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Extensions.ContextQuery;
@@ -24,7 +25,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
         {
             var result = new HashSet<INamespaceSymbol>(semanticModel.GetUsingNamespacesInScope(location));
 
-            var containingNamespaceDeclaration = location.GetAncestorOrThis<Syntax.NamespaceDeclarationSyntax>();
+            var containingNamespaceDeclaration = location.GetAncestorOrThis<NamespaceDeclarationSyntax>();
             var namespaceSymbol = semanticModel.GetDeclaredSymbol(containingNamespaceDeclaration, cancellationToken);
 
             if (namespaceSymbol != null)

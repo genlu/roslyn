@@ -3252,15 +3252,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             return Declarations.GetDeclarationRoot(this);
         }
 
-        internal override ImmutableArray<T> VisitTopLevelTypeDeclarations<T>(
-            Func<string, bool> namespacePredicate,
-            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
-            Func<ITypeDeclaration, string, T> create,
-            CancellationToken cancellationToken)
-        {
-            return Declarations.VisitTopLevelTypeDeclarations(this, namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
-        }
-
         private abstract class AbstractSymbolSearcher
         {
             private readonly PooledDictionary<Declaration, NamespaceOrTypeSymbol> _cache;

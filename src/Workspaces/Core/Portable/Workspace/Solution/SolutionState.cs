@@ -1904,16 +1904,10 @@ namespace Microsoft.CodeAnalysis
             return compilation.ContainsSymbolsWithName(predicate, filter, cancellationToken);
         }
 
-
-        public async Task<ImmutableArray<T>> VisitTopLevelTypeDeclarationsAsync<T>(
-            ProjectId id,
-            Func<string, bool> namespacePredicate,
-            Func<ITypeDeclaration, bool> typeDeclartionPredicate,
-            Func<ITypeDeclaration, string, T> create,
-            CancellationToken cancellationToken)
+        internal async Task<INamespaceDeclaration> GetDeclarationRootAsync(ProjectId id, CancellationToken cancellationToken)
         {
-            var result = GetCompilationTracker(id).VisitTopLevelTypeDeclarationsFromDeclarationOnlyCompilation(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
-            if (!result.IsDefault)
+            var result = GetCompilationTracker(id).GetDeclarationRootFromDeclarationOnlyCompilation();
+            if (result != null)
             {
                 return result;
             }
@@ -1923,10 +1917,10 @@ namespace Microsoft.CodeAnalysis
             if (compilation == null)
             {
                 // some projects don't support compilations (e.g., TypeScript) so there's nothing to check
-                return ImmutableArray<T>.Empty;
+                return null;
             }
 
-            return compilation.VisitTopLevelTypeDeclarations(namespacePredicate, typeDeclartionPredicate, create, cancellationToken);
+            return compilation.GetDeclarationRoot();
         }
 
         public async Task<ImmutableArray<DocumentState>> GetDocumentsWithNameAsync(
