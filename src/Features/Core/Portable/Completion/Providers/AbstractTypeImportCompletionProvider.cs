@@ -209,15 +209,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         {
             var tick = Environment.TickCount;
 
-            var builder = ArrayBuilder<CompletionItem>.GetInstance();
-            var root = await fromProject.GetDeclarationRootAsync(cancellationToken).ConfigureAwait(false);
-            var rootNamespace = root.Name;
-
-            var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
-
-            VisitDeclaration(root, rootNamespace, namespacesInScope.Contains(rootNamespace));
-
-            var items = builder.ToImmutableAndFree();
+            var items = await GetCompletionItemsForTopLevelTypeDeclarationsAsync(fromProject, namespacesInScope, isInternalsVisible, cancellationToken).ConfigureAwait(false);
 
             tick = Environment.TickCount - tick;
 
@@ -227,29 +219,47 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
 
             return items;
 
-            void VisitDeclaration(
-                INamespaceOrTypeDeclaration declaration,
-                string currentNamespace,
-                bool shouldVisitTypesInCurrentNamespace)
+            static async Task<ImmutableArray<CompletionItem>> GetCompletionItemsForTopLevelTypeDeclarationsAsync(
+                Project project,
+                ImmutableHashSet<string> namespacesInScope,
+                bool isInternalsVisible,
+                CancellationToken cancellationToken)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                var builder = ArrayBuilder<CompletionItem>.GetInstance();
+                var root = await project.GetDeclarationRootAsync(cancellationToken).ConfigureAwait(false);
+                var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
 
-                if (declaration.IsNamespace)
+                VisitDeclaration(root, null, false);
+
+                return builder.ToImmutableAndFree();
+
+                void VisitDeclaration(
+                    INamespaceOrTypeDeclaration declaration,
+                    string currentNamespace,
+                    bool shouldVisitTypesInCurrentNamespace)
                 {
-                    var namespaceDeclaration = (INamespaceDeclaration)declaration;
-                    currentNamespace = ConcatNamespace(currentNamespace, namespaceDeclaration.Name);
-                    shouldVisitTypesInCurrentNamespace = namespacesInScope.Contains(currentNamespace);
-                    foreach (var child in namespaceDeclaration.Children)
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (declaration.IsNamespace)
                     {
-                        VisitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace);
+                        var namespaceDeclaration = (INamespaceDeclaration)declaration;
+                        currentNamespace = ConcatNamespace(currentNamespace, namespaceDeclaration.Name);
+                        shouldVisitTypesInCurrentNamespace = !namespacesInScope.Contains(currentNamespace);
+                        foreach (var child in namespaceDeclaration.Children)
+                        {
+                            VisitDeclaration(child, currentNamespace, shouldVisitTypesInCurrentNamespace);
+                        }
                     }
-                }
-                else if (shouldVisitTypesInCurrentNamespace)
-                {
-                    var typeDeclaration = (ITypeDeclaration)declaration;
-                    if (typeDeclaration.Accessibility >= minimumAccessibility)
+                    else if (shouldVisitTypesInCurrentNamespace)
                     {
-                        builder.Add(TypeImportCompletionItem.Create(typeDeclaration, currentNamespace));
+                        // TODO: 
+                        // 1. Ignore submission?
+                        // 2. Handle Accessibility.NotApplicable
+                        var typeDeclaration = (ITypeDeclaration)declaration;
+                        if (typeDeclaration.DeclaredAccessibility >= minimumAccessibility)
+                        {
+                            builder.Add(TypeImportCompletionItem.Create(typeDeclaration, currentNamespace));
+                        }
                     }
                 }
             }
@@ -280,7 +290,8 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
 
                 var minimumAccessibility = isInternalsVisible ? Accessibility.Internal : Accessibility.Public;
 
-                VisitSymbol(root, null, namespacesInScope.Contains(rootNamespace));
+                VisitSymbol(root, null, false);
+
                 return builder.ToImmutableAndFree();
 
                 void VisitSymbol(ISymbol symbol, string containingNamespace, bool shouldVisitTypesInCurrentNamespace)
@@ -315,6 +326,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                 return name;
             }
 
+            _debug_total_namespace_concat++;
             return containingNamespace + "." + name;
         }
 
@@ -322,6 +334,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             DebugTextFormat,
             _debug_total_compilation, _debug_total_compilation_decl, _debug_total_compilation_time,
             _debug_total_pe, _debug_total_pe_decl, _debug_total_pe_time,
+            _debug_total_namespace_concat,
             _debug_total_time_with_ItemCreation);
 
         private int _debug_total_compilation = 0;
@@ -334,6 +347,8 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
 
         private int _debug_total_time_with_ItemCreation = 0;
 
+        private static int _debug_total_namespace_concat = 0;
+
         private void DebugClear()
         {
             _debug_total_compilation = 0;
@@ -345,6 +360,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             _debug_total_pe_time = 0;
 
             _debug_total_time_with_ItemCreation = 0;
+            _debug_total_namespace_concat = 0;
         }
 
         private const string DebugTextFormat = @"
@@ -356,6 +372,7 @@ Total PEs: {3}
 Total Declarations: {4}
 Elapsed time: {5}
 
-Total time: {6}";
+Total namespace concat: {6}
+Total time: {7}";
     }
 }

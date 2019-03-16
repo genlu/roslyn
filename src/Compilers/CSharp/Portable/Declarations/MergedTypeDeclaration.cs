@@ -228,7 +228,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         TypeKind ITypeDeclaration.TypeKind => this.Kind.ToTypeKind();
 
-        Accessibility ITypeDeclaration.Accessibility
+        Accessibility ITypeDeclaration.DeclaredAccessibility
         {
             get
             {

@@ -103,11 +103,14 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                 case TypeKind.Enum:
                     publicIcon = Glyph.EnumPublic;
                     break;
+                case TypeKind.Module:
+                    publicIcon = Glyph.ModulePublic;
+                    break;
                 default:
                     throw new ArgumentException();
             }
 
-            switch (typeDeclaration.Accessibility)
+            switch (typeDeclaration.DeclaredAccessibility)
             {
                 case Accessibility.Private:
                     publicIcon += Glyph.ClassPrivate - Glyph.ClassPublic;

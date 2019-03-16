@@ -139,7 +139,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         TypeKind ITypeDeclaration.TypeKind => this.Kind.ToTypeKind();
 
-        Accessibility ITypeDeclaration.Accessibility => ModifierUtils.EffectiveAccessibility(this.Modifiers);
+        Accessibility ITypeDeclaration.DeclaredAccessibility => ModifierUtils.EffectiveAccessibility(this.Modifiers);
 
         // identity that is used when collecting all declarations 
         // of same type across multiple containers

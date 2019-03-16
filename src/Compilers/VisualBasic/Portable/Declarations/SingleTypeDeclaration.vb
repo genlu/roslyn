@@ -103,7 +103,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Private ReadOnly Property Accessibility As Accessibility Implements ITypeDeclaration.Accessibility
+        Private ReadOnly Property DeclaredAccessibility As Accessibility Implements ITypeDeclaration.DeclaredAccessibility
             Get
                 Return Me.Modifiers.ToAccessibility()
             End Get

@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis
     {
         TypeKind TypeKind { get; }
 
-        Accessibility Accessibility { get; }
+        Accessibility DeclaredAccessibility { get; }
 
         int Arity { get; }
     }
