@@ -26,7 +26,7 @@ namespace Roslyn.VisualStudio.IntegrationTests.Workspace
             base.OpenCSharpThenVBSolution();
         }
 
-        [WpfFact, Trait(Traits.Feature, Traits.Features.Workspace)]
+        [WpfFact(Skip = "https://github.com/dotnet/cli/issues/10989"), Trait(Traits.Feature, Traits.Features.Workspace)]
         [Trait(Traits.Feature, Traits.Features.NetCore)]
         public override void MetadataReference()
         {
@@ -39,7 +39,7 @@ namespace Roslyn.VisualStudio.IntegrationTests.Workspace
 </Project>");
             VisualStudio.SolutionExplorer.SaveAll();
             VisualStudio.SolutionExplorer.RestoreNuGetPackages(project);
-            VisualStudio.Workspace.WaitForAsyncOperations(FeatureAttribute.Workspace);
+            VisualStudio.Workspace.WaitForAsyncOperations(Helper.HangMitigatingTimeout, FeatureAttribute.Workspace);
             VisualStudio.SolutionExplorer.OpenFile(project, "Class1.cs");
             base.MetadataReference();
         }

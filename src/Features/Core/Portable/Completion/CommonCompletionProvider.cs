@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.Completion
         {
             switch (trigger.Kind)
             {
-                case CompletionTriggerKind.Insertion:
+                case CompletionTriggerKind.Insertion when position > 0:
                     var insertedCharacterPosition = position - 1;
                     return this.IsInsertionTrigger(text, insertedCharacterPosition, options);
 
@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.Completion
             return false;
         }
 
-        public sealed override async Task<CompletionDescription> GetDescriptionAsync(
+        public override async Task<CompletionDescription> GetDescriptionAsync(
             Document document, CompletionItem item, CancellationToken cancellationToken)
         {
             // Get the actual description provided by whatever subclass we are.
