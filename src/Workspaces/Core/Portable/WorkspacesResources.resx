@@ -1494,4 +1494,7 @@ Zero-width positive lookbehind assertions are typically used at the beginning of
   <data name="Project_of_ID_0_is_required_to_accomplish_the_task_but_is_not_available_from_the_solution" xml:space="preserve">
     <value>Project of ID {0} is required to accomplish the task but is not available from the solution</value>
   </data>
+  <data name="Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_saving_your_work_and_then_restarting" xml:space="preserve">
+    <value>Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting.</value>
+  </data>
 </root>

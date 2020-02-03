@@ -3665,6 +3665,16 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting..
+        /// </summary>
+        internal static string Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_saving_your_work_and_then_restarting {
+            get {
+                return ResourceManager.GetString("Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_s" +
+                        "aving_your_work_and_then_restarting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown identifier..
         /// </summary>
         internal static string Unknown_identifier {

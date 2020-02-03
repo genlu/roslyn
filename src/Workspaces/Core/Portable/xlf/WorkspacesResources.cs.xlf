@@ -1342,6 +1342,11 @@ Pozitivní kontrolní výrazy zpětného vyhledávání s nulovou délkou se obv
         <target state="translated">K provedení úlohy se vyžaduje strom syntaxe, ale dokument {0} ho nepodporuje.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_saving_your_work_and_then_restarting">
+        <source>Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting.</source>
+        <target state="new">Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Visual_Basic_files">
         <source>Visual Basic files</source>
         <target state="translated">Soubory jazyka Visual Basic</target>

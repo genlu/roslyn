@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Shared.Utilities;
@@ -30,7 +31,8 @@ namespace Microsoft.CodeAnalysis.Host
         public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
         {
             var textFactory = workspaceServices.GetService<ITextFactoryService>();
-            return new TemporaryStorageService(textFactory);
+            var errorReportingService = workspaceServices.GetService<IErrorReportingService>();
+            return new TemporaryStorageService(textFactory, errorReportingService);
         }
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace Microsoft.CodeAnalysis.Host
             private const long MultiFileBlockSize = SingleFileThreshold * 32;
 
             private readonly ITextFactoryService _textFactory;
+            private readonly IErrorReportingService _errorReportingService;
 
             /// <summary>
             /// The synchronization object for accessing the memory mapped file related fields (indicated in the remarks
@@ -104,9 +107,10 @@ namespace Microsoft.CodeAnalysis.Host
             /// <seealso cref="_weakFileReference"/>
             private long _offset;
 
-            public TemporaryStorageService(ITextFactoryService textFactory)
+            public TemporaryStorageService(ITextFactoryService textFactory, IErrorReportingService errorReportingService)
             {
                 _textFactory = textFactory;
+                _errorReportingService = errorReportingService;
             }
 
             public ITemporaryTextStorage CreateTemporaryTextStorage(CancellationToken cancellationToken)
@@ -178,6 +182,13 @@ namespace Microsoft.CodeAnalysis.Host
             public static string CreateUniqueName(long size)
             {
                 return "Roslyn Temp Storage " + size.ToString() + " " + Guid.NewGuid().ToString("N");
+            }
+
+            // Show unrecoverable exception in info bar.
+            private void ReportError(Exception exception)
+            {
+                var infoBarUI = new InfoBarUI(WorkspacesResources.Show_Stack_Trace, InfoBarUI.UIKind.HyperLink, () => _errorReportingService.ShowDetailedErrorInfo(exception), closeAfterAction: true);
+                _errorReportingService.ShowGlobalErrorInfo(WorkspacesResources.Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_saving_your_work_and_then_restarting, infoBarUI);
             }
 
             private class TemporaryTextStorage : ITemporaryTextStorage, ITemporaryStorageWithName
@@ -267,10 +278,19 @@ namespace Microsoft.CodeAnalysis.Host
                         _memoryMappedInfo = _service.CreateTemporaryStorage(size);
 
                         // Write the source text out as Unicode. We expect that to be cheap.
-                        using var stream = _memoryMappedInfo.CreateWritableStream();
-                        using var writer = new StreamWriter(stream, Encoding.Unicode);
+                        try
+                        {
+                            using var stream = _memoryMappedInfo.CreateWritableStream();
+                            using var writer = new StreamWriter(stream, Encoding.Unicode);
 
-                        text.Write(writer, cancellationToken);
+                            text.Write(writer, cancellationToken);
+                        }
+                        catch (IOException e)
+                        {
+                            // MemoryMappedInfo.CreateWritableStream might throw IOException due to OOM.
+                            // This is unrecoverable but we don't want to crash VS immediately.
+                            _service.ReportError(e);
+                        }
                     }
                 }
 
@@ -373,11 +393,14 @@ namespace Microsoft.CodeAnalysis.Host
                     {
                         var size = stream.Length;
                         _memoryMappedInfo = _service.CreateTemporaryStorage(size);
-                        using var viewStream = _memoryMappedInfo.CreateWritableStream();
 
-                        var buffer = SharedPools.ByteArray.Allocate();
                         try
                         {
+                            using var viewStream = _memoryMappedInfo.CreateWritableStream();
+
+                            using var pooled = SharedPools.ByteArray.GetPooledObject();
+                            var buffer = pooled.Object;
+
                             while (true)
                             {
                                 int count;
@@ -398,9 +421,11 @@ namespace Microsoft.CodeAnalysis.Host
                                 viewStream.Write(buffer, 0, count);
                             }
                         }
-                        finally
+                        catch (IOException e)
                         {
-                            SharedPools.ByteArray.Free(buffer);
+                            // MemoryMappedInfo.CreateWritableStream might throw IOException due to OOM.
+                            // This is unrecoverable but we don't want to crash VS immediately.
+                            _service.ReportError(e);
                         }
                     }
                 }

@@ -1342,6 +1342,11 @@ Zero-width positive lookbehind assertions are typically used at the beginning of
         <target state="translated">構文ツリーはタスクの実行に必要ですが、ドキュメント {0} ではサポートされていません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="Unfortunately_the_workspace_has_encountered_an_unrecoverable_error_We_recommend_saving_your_work_and_then_restarting">
+        <source>Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting.</source>
+        <target state="new">Unfortunately the workspace has encountered an unrecoverable error. We recommend saving your work and then restarting.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Visual_Basic_files">
         <source>Visual Basic files</source>
         <target state="translated">Visual Basic ファイル</target>
