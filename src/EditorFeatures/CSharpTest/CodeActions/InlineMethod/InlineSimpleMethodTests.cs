@@ -6,27 +6,28 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CodeRefactorings.InlineMethod;
+using Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineMethod;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.CodeRefactorings.InlineMethod
 {
-    public class InlineMethodTests : AbstractCSharpCodeActionTest
+    public class InlineSimpleMethodTests : AbstractCSharpCodeActionTest
     {
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider(Workspace workspace, TestParameters parameters)
-            => new InlineMethodCodeRefactoringProvider();
+            => new InlineSimpleMethodCodeRefactoringProvider();
 
         [Fact]
-        public async Task InlinePrivateExpressionBody()
+        public async Task InlineExpressionBody()
         {
             await TestInRegularAndScriptAsync(@"
-class C
+public class C
 {
-    void M1()
+    public void M1()
     {
-        var x = [|M2();|]
+        var x = M();
     }
 
-    bool M2() => true;
+    public bool [||]M() => true;
 }", @"
 class C
 {
@@ -35,6 +36,30 @@ class C
         var x = true;
     }
 }");
+        }
+
+        [Fact]
+        public async Task InlineInterfaceMethodExpressionBody()
+        {
+            await TestInRegularAndScriptAsync(@"
+public interface I
+{
+    bool M();
+}
+public class C : I
+{
+    public void M1()
+    {
+        //var x = M();
+    }
+
+    public void M2(I i)
+    {
+        var x = i.M();
+    }
+
+    public bool [||]M() => true;
+}", @"");
         }
     }
 }
