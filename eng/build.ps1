@@ -51,6 +51,7 @@ param (
   [string]$officialSkipTests = "",
   [string]$officialSourceBranchName = "",
   [string]$officialIbcDrop = "",
+  [string]$officialDevDivDropAccessToken = "",
 
   # Test actions
   [switch]$test32,
@@ -111,6 +112,7 @@ function Print-Usage() {
   Write-Host "  -officialSourceBranchName <string>          The source branch name"
   Write-Host "  -officialIbcDrop <string>                   IBC data drop to use (e.g. 'ProfilingOutputs/DevDiv/VS/..')."
   Write-Host "                                              'default' for the most recent available for the branch."
+  Write-Host "  -officialDevDivDropAccessToken <string>     The access token for official build drop"
   Write-Host ""
   Write-Host "Command line arguments starting with '/p:' are passed through to MSBuild."
 }
@@ -253,6 +255,7 @@ function BuildSolution() {
       /p:IbcOptimizationDataDir=$ibcDir `
       /p:RestoreUseStaticGraphEvaluation=true `
       /p:VisualStudioIbcDrop=$ibcDropName `
+      /p:VisualStudioDropAccessToken=$officialDevDivDropAccessToken `
       $suppressExtensionDeployment `
       $msbuildWarnAsError `
       $buildFromSource `
@@ -294,7 +297,7 @@ function GetIbcDropName() {
     }
 
     # Don't try and get the ibc drop if we're not in an official build as it won't be used anyway
-    if (!$officialBuildId) {
+    if ($officialSkipApplyOptimizationData -or !$officialBuildId) {
         return ""
     }
 
@@ -306,7 +309,8 @@ function GetIbcDropName() {
     $branch = GetIbcSourceBranchName
     Write-Host "Optimization data branch name is '$branch'."
 
-    $drop = Find-OptimizationInputsStoreForBranch -ProjectName "DevDiv" -RepositoryName "VS" -BranchName $branch
+    $pat = ConvertTo-SecureString $officialDevDivDropAccessToken -AsPlainText -Force
+    $drop = Find-OptimizationInputsStoreForBranch -ProjectName "DevDiv" -RepositoryName "VS" -BranchName $branch -PAT $pat
     return $drop.Name
 }
 
