@@ -3,8 +3,10 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess;
+using Microsoft.VisualStudio.Utilities;
 
 namespace Microsoft.VisualStudio.IntegrationTest.Utilities.OutOfProcess
 {
@@ -37,6 +39,12 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.OutOfProcess
             return _textViewWindowInProc.GetCompletionItems();
         }
 
+        public string GetCurrentCompletionItem()
+        {
+            WaitForCompletionSet();
+            return _textViewWindowInProc.GetCurrentCompletionItem();
+        }
+
         public int GetVisibleColumnCount()
             => _textViewWindowInProc.GetVisibleColumnCount();
 
@@ -45,13 +53,15 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.OutOfProcess
             int charsOffset = 0,
             int occurrence = 0,
             bool extendSelection = false,
-            bool selectBlock = false)
+            bool selectBlock = false,
+            string bufferContentType = StandardContentTypeNames.Code)
             => _textViewWindowInProc.PlaceCaret(
                 marker,
                 charsOffset,
                 occurrence,
                 extendSelection,
-                selectBlock);
+                selectBlock,
+                bufferContentType);
 
         public string[] GetCurrentClassifications()
             => _textViewWindowInProc.GetCurrentClassifications();

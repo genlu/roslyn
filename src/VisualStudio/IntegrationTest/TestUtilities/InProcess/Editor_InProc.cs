@@ -718,9 +718,9 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
         public void Redo()
             => GetDTE().ExecuteCommand(WellKnownCommandNames.Edit_Redo);
 
-        protected override ITextBuffer GetBufferContainingCaret(IWpfTextView view)
+        protected override ITextBuffer GetBufferContainingCaret(IWpfTextView view, string bufferContentType = StandardContentTypeNames.Code)
         {
-            var caretBuffer = view.GetBufferContainingCaret(StandardContentTypeNames.Code);
+            var caretBuffer = view.GetBufferContainingCaret(bufferContentType);
             if (caretBuffer is null)
             {
                 throw new InvalidOperationException($"Unable to find the buffer containing the caret. Ensure the Editor is activated berfore calling.");

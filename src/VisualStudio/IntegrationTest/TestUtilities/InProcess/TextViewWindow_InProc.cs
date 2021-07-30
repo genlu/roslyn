@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Editor.Implementation.Suggestions;
 using Microsoft.VisualStudio.Language.Intellisense;
@@ -17,7 +18,7 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Text.Tagging;
-using Roslyn.Utilities;
+using Microsoft.VisualStudio.Utilities;
 using OLECMDEXECOPT = Microsoft.VisualStudio.OLE.Interop.OLECMDEXECOPT;
 using ThreadHelper = Microsoft.VisualStudio.Shell.ThreadHelper;
 
@@ -62,6 +63,13 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
 
                 var selectedCompletionSet = sessions[0].SelectedCompletionSet;
                 return selectedCompletionSet.SelectionStatus.Completion.DisplayText;
+            });
+
+        public void TriggerCompletion()
+            => ExecuteOnActiveView(view =>
+            {
+                var broker = GetComponentModelService<ICompletionBroker>();
+                broker.TriggerCompletion(view);
             });
 
         public void ShowLightBulb()
@@ -109,7 +117,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
             });
         }
 
-        protected abstract ITextBuffer GetBufferContainingCaret(IWpfTextView view);
+        protected abstract ITextBuffer GetBufferContainingCaret(IWpfTextView view, string bufferContentType);
 
         public string[] GetCurrentClassifications()
             => InvokeOnUIThread(cancellationToken =>
@@ -154,7 +162,8 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
             int charsOffset,
             int occurrence,
             bool extendSelection,
-            bool selectBlock)
+            bool selectBlock,
+            string bufferContentType = StandardContentTypeNames.Code)
             => ExecuteOnActiveView(view =>
             {
                 var dte = GetDTE();
@@ -164,8 +173,9 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
                 dte.Find.Target = EnvDTE.vsFindTarget.vsFindTargetCurrentDocument;
                 dte.Find.Action = EnvDTE.vsFindAction.vsFindActionFind;
 
-                var originalPosition = GetCaretPosition();
-                view.Caret.MoveTo(new SnapshotPoint(GetBufferContainingCaret(view).CurrentSnapshot, 0));
+                var originalPosition = GetCaretPosition(bufferContentType);
+                var buffer = GetBufferContainingCaret(view, bufferContentType);
+                view.Caret.MoveTo(new SnapshotPoint(buffer.CurrentSnapshot, 0));
 
                 if (occurrence > 0)
                 {
@@ -220,10 +230,10 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
                 }
             });
 
-        public int GetCaretPosition()
+        public int GetCaretPosition(string bufferContentType = StandardContentTypeNames.Code)
             => ExecuteOnActiveView(view =>
             {
-                var subjectBuffer = GetBufferContainingCaret(view);
+                var subjectBuffer = GetBufferContainingCaret(view, bufferContentType);
                 var bufferPosition = view.Caret.Position.BufferPosition;
                 return bufferPosition.Position;
             });

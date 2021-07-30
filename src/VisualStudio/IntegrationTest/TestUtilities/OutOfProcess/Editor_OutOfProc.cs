@@ -92,16 +92,15 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.OutOfProcess
             _instance.ExecuteCommand(WellKnownCommandNames.Edit_NextHighlightedReference);
         }
 
-        public string GetCurrentCompletionItem()
-        {
-            WaitForCompletionSet();
-            return _editorInProc.GetCurrentCompletionItem();
-        }
-
         public bool IsCompletionActive()
         {
             WaitForCompletionSet();
             return _editorInProc.IsCompletionActive();
+        }
+
+        public void TriggerCompletion()
+        {
+            _editorInProc.TriggerCompletion();
         }
 
         public void InvokeSignatureHelp()

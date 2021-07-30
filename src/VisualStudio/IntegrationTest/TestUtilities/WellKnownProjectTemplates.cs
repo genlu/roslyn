@@ -21,10 +21,22 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities
         public const string CSharpNetCoreUnitTest = "Microsoft.CSharp.NETCore.UnitTest";
         public const string CSharpNetCoreXUnitTest = "Microsoft.CSharp.NETCore.XUnitTest";
         public const string BlazorApplication = "BlazorTemplate.vstemplate";
+        public const string WebTemplate = "WebTemplate.vstemplate";
+        public const string WebTemplateCore = nameof(WebTemplateCore);
 
         /// <summary>
         /// Combined with <see cref="BlazorApplication"/> to create a blazor application.
         /// </summary>
         public const string BlazorTemplateParameters = "|$groupid$=Microsoft.Web.Blazor.Wasm|$platformversion$=3.1";
+
+        /// <summary>
+        /// Combined with <see cref="WebTemplateCore"/> to create a ASP.Net Core application with sample razor pages.
+        /// </summary>
+        public const string RazorPageTemplateParameters = "|$groupid$=Microsoft.Web.RazorPages|$platformversion$=3.1";
+
+        /// <summary>
+        /// Combined with <see cref="WebTemplate"/> to create a ASP.Net MVC application.
+        /// </summary>
+        public const string FrameworkMvcTemplateParameters = "|$targetframeworkversion$=4.7.2|$basetemplateid$=Microsoft.WAP.CSharp.MvcBasicApplication.v5.0|$applyauth$=NoAuth|$applyframeworkreferences$=MVC";
     }
 }
