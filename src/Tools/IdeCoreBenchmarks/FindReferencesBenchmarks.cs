@@ -77,7 +77,7 @@ namespace IdeCoreBenchmarks
             _workspace = MSBuildWorkspace.Create(new Dictionary<string, string>
                 {
                     // Use the latest language version to force the full set of available analyzers to run on the project.
-                    { "LangVersion", "9.0" },
+                    { "LangVersion", "preview" },
                 }, services);
 
             if (_workspace == null)
