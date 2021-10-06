@@ -1,0 +1,2 @@
+﻿dotnet run -c release --framework net6.0 -- -i -f IdeCoreBenchmarks.FindReferencesBenchmarks.* --buildTimeout 700 --runtimes net6.0 --job Long --iterationCount 1 --launchCount 1 --warmupCount 1 --iterationTime 60000
+dotnet run -c release --framework net472 -- -i -f IdeCoreBenchmarks.FindReferencesBenchmarks.* --buildTimeout 700 --runtimes net472 --job Long --iterationCount 1 --launchCount 1 --warmupCount 1 --iterationTime 60000
