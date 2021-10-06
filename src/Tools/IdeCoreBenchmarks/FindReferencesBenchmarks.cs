@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -32,7 +32,7 @@ namespace IdeCoreBenchmarks
         Solution _solution;
         ISymbol _type;
 
-        [GlobalSetup]
+        [IterationSetup]
         public void Setup()
         {
             SetUpWorkspace();
@@ -118,7 +118,7 @@ namespace IdeCoreBenchmarks
             Console.WriteLine($"Locations count: {locations.Count}");
         }
 
-        [GlobalCleanup]
+        [IterationCleanup]
         public void Cleanup()
         {
             _workspace?.Dispose();
