@@ -35,8 +35,19 @@ namespace IdeCoreBenchmarks
         [IterationSetup]
         public void Setup()
         {
+            RestoreCompilerSolution();
             SetUpWorkspace();
             LoadSolution().Wait();
+        }
+
+        private static void RestoreCompilerSolution()
+        {
+            var roslynRoot = Environment.GetEnvironmentVariable(Program.RoslynRootPathEnvVariableName);
+            var solutionPath = Path.Combine(roslynRoot, "Compilers.sln");
+            var restoreOperation = Process.Start("dotnet", $"restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true {solutionPath}");
+            restoreOperation.WaitForExit();
+            if (restoreOperation.ExitCode != 0)
+                throw new ArgumentException($"Unable to restore {solutionPath}");
         }
 
         private static void SetUpWorkspace()
