@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AnalyzerRunner;
@@ -18,7 +17,6 @@ using BenchmarkDotNet.Diagnosers;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
-using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Storage;
@@ -67,7 +65,7 @@ namespace IdeCoreBenchmarks
             if (!File.Exists(solutionPath))
                 throw new ArgumentException("Couldn't find Compilers.sln");
 
-            Console.Write("Found Compilers.sln: " + Process.GetCurrentProcess().Id);
+            Console.WriteLine("Found Compilers.sln: " + Process.GetCurrentProcess().Id);
 
             var assemblies = MSBuildMefHostServices.DefaultAssemblies
                 .Add(typeof(AnalyzerRunnerHelper).Assembly)
@@ -100,7 +98,7 @@ namespace IdeCoreBenchmarks
 
             using (var storage = await storageService.GetStorageAsync(SolutionKey.ToSolutionKey(_workspace.CurrentSolution), checkBranchId: true, CancellationToken.None))
             {
-                Console.WriteLine();
+                Console.WriteLine("Sucessfully got persistent storage instance");
             }
 
             // There might be multiple projects with this name.  That's ok.  FAR goes and finds all the linked-projects
