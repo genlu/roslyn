@@ -62,7 +62,7 @@ namespace IdeCoreBenchmarks
         private async Task LoadSolution()
         {
             var roslynRoot = Environment.GetEnvironmentVariable(Program.RoslynRootPathEnvVariableName);
-            var solutionPath = Path.Combine(roslynRoot, @"C:\source\dotnet\roslyn\Compilers.sln");
+            var solutionPath = Path.Combine(roslynRoot, "Compilers.sln");
 
             if (!File.Exists(solutionPath))
                 throw new ArgumentException("Couldn't find Compilers.sln");
