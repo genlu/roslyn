@@ -40,7 +40,12 @@ namespace IdeCoreBenchmarks
         private static void Main(string[] args)
         {
             Environment.SetEnvironmentVariable(RoslynRootPathEnvVariableName, GetRoslynRootLocation());
-            new BenchmarkSwitcher(typeof(Program).Assembly).Run(args);
+            var switcher = new BenchmarkSwitcher(typeof(Program).Assembly);
+#if DEBUG
+            switcher.Run(args, new DebugInProcessConfig());
+#else
+            switcher.Run(args);
+#endif
         }
     }
 }
