@@ -30,13 +30,15 @@ namespace IdeCoreBenchmarks
         Solution _solution;
         ISymbol _type;
 
-        [IterationSetup]
-        public void Setup()
+        [GlobalSetup]
+        public void GlobalSetup()
         {
             RestoreCompilerSolution();
             SetUpWorkspace();
-            LoadSolution().Wait();
         }
+
+        [IterationSetup]
+        public void IterationSetup() => LoadSolutionAsync().Wait();
 
         private static void RestoreCompilerSolution()
         {
@@ -57,7 +59,7 @@ namespace IdeCoreBenchmarks
             MSBuildLocator.RegisterInstance(msBuildInstance);
         }
 
-        private async Task LoadSolution()
+        private async Task LoadSolutionAsync()
         {
             var roslynRoot = Environment.GetEnvironmentVariable(Program.RoslynRootPathEnvVariableName);
             var solutionPath = Path.Combine(roslynRoot, "Compilers.sln");
