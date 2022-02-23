@@ -227,31 +227,24 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var declaredReceiverTypeInOriginatingCompilation = SymbolFinder.FindSimilarSymbols(declaredReceiverType, _originatingSemanticModel.Compilation, cancellationToken).FirstOrDefault();
+                    // SymbolFinder.FindSimilarSymbols uses SymbolKey under the hood, e.g. if originating and referenced compilation targeting different frameworks
+                    // say net472 and netstandard respectively, the SymbolKey for System.String from those two framework would be:
+                    //  {1 (D "String" (N "System" 0 (N "" 0 (U (S "netstandard" 4) 3) 2) 1) 0 0 (% 0) 0)}
+                    //  {1 (D "String" (N "System" 0 (N "" 0 (U (S "mscorlib" 4) 3) 2) 1) 0 0 (% 0) 0)}
+                    // To accomodate this issue, we need to ignore assembly during SymbolKey resolution.
+                    var declaredReceiverTypeInOriginatingCompilation = SymbolFinder.FindSimilarSymbols(
+                        declaredReceiverType, _originatingSemanticModel.Compilation, ignoreAssembly: true, cancellationToken).First();
+
                     if (declaredReceiverTypeInOriginatingCompilation == null)
-                    {
-                        // Bug: https://github.com/dotnet/roslyn/issues/45404
-                        // SymbolFinder.FindSimilarSymbols would fail if originating and referenced compilation targeting different frameworks say net472 and netstandard respectively.
-                        // Here's SymbolKey for System.String from those two framework as an example:
-                        //
-                        //  {1 (D "String" (N "System" 0 (N "" 0 (U (S "netstandard" 4) 3) 2) 1) 0 0 (% 0) 0)}
-                        //  {1 (D "String" (N "System" 0 (N "" 0 (U (S "mscorlib" 4) 3) 2) 1) 0 0 (% 0) 0)}
-                        //
-                        // Also we don't use the "ignoreAssemblyKey" option for SymbolKey resolution because its perfermance doesn't meet our requirement.
                         continue;
-                    }
 
+                    // If we already checked an extension method with same receiver type before, and we know it can't be applied
+                    // to the receiverTypeSymbol, then no need to proceed methods from this group..
                     if (_checkedReceiverTypes.TryGetValue(declaredReceiverTypeInOriginatingCompilation, out var cachedResult) && !cachedResult)
-                    {
-                        // If we already checked an extension method with same receiver type before, and we know it can't be applied
-                        // to the receiverTypeSymbol, then no need to proceed methods from this group..
                         continue;
-                    }
 
-                    // This is also affected by the symbol resolving issue mentioned above, which means in case referenced projects
-                    // are targeting different framework, we will miss extension methods with any framework type in their signature from those projects.
                     var isFirstMethod = true;
-                    foreach (var methodInOriginatingCompilation in methodSymbols.Select(s => SymbolFinder.FindSimilarSymbols(s, _originatingSemanticModel.Compilation).FirstOrDefault()).WhereNotNull())
+                    foreach (var methodInOriginatingCompilation in methodSymbols.Select(s => SymbolFinder.FindSimilarSymbols(s, _originatingSemanticModel.Compilation, ignoreAssembly: true, cancellationToken).FirstOrDefault()).WhereNotNull())
                     {
                         if (isFirstMethod)
                         {

@@ -203,6 +203,10 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         /// <returns></returns>
         public static IEnumerable<TSymbol> FindSimilarSymbols<TSymbol>(TSymbol symbol, Compilation compilation, CancellationToken cancellationToken = default)
             where TSymbol : ISymbol
+            => FindSimilarSymbols(symbol, compilation, ignoreAssembly: false, cancellationToken);
+
+        internal static IEnumerable<TSymbol> FindSimilarSymbols<TSymbol>(TSymbol symbol, Compilation compilation, bool ignoreAssembly, CancellationToken cancellationToken = default)
+            where TSymbol : ISymbol
         {
             if (symbol is null)
                 throw new ArgumentNullException(nameof(symbol));
@@ -214,7 +218,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
 
             // We may be talking about different compilations.  So do not try to resolve locations.
             var result = new HashSet<TSymbol>();
-            var resolution = key.Resolve(compilation, cancellationToken: cancellationToken);
+            var resolution = key.Resolve(compilation, ignoreAssembly, cancellationToken: cancellationToken);
             foreach (var current in resolution.OfType<TSymbol>())
             {
                 result.Add(current);
