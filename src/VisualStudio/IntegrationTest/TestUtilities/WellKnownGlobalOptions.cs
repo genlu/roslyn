@@ -19,6 +19,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities
     public enum WellKnownGlobalOption
     {
         CompletionOptions_ShowItemsFromUnimportedNamespaces,
+        CompletionOptions_ForceExpandedCompletionIndexCreation,
         CompletionViewOptions_EnableArgumentCompletionSnippets,
         CompletionOptions_TriggerInArgumentLists,
         InlineRenameSessionOptions_RenameInComments,
@@ -35,6 +36,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities
             => option switch
             {
                 WellKnownGlobalOption.CompletionOptions_ShowItemsFromUnimportedNamespaces => CompletionOptionsStorage.ShowItemsFromUnimportedNamespaces,
+                WellKnownGlobalOption.CompletionOptions_ForceExpandedCompletionIndexCreation => CompletionOptionsStorage.ForceExpandedCompletionIndexCreation,
                 WellKnownGlobalOption.CompletionOptions_TriggerInArgumentLists => CompletionOptionsStorage.TriggerInArgumentLists,
                 WellKnownGlobalOption.CompletionViewOptions_EnableArgumentCompletionSnippets => CompletionViewOptions.EnableArgumentCompletionSnippets,
                 WellKnownGlobalOption.InlineRenameSessionOptions_RenameInComments => InlineRenameSessionOptionsStorage.RenameInComments,

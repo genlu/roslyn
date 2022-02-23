@@ -14,6 +14,7 @@ using Microsoft.VisualStudio.IntegrationTest.Utilities.Input;
 using Roslyn.Test.Utilities;
 using Xunit;
 using Xunit.Abstractions;
+using ProjectUtils = Microsoft.VisualStudio.IntegrationTest.Utilities.Common.ProjectUtils;
 
 namespace Roslyn.VisualStudio.IntegrationTests.CSharp
 {
@@ -33,6 +34,41 @@ namespace Roslyn.VisualStudio.IntegrationTests.CSharp
 
             // Disable import completion.
             VisualStudio.Workspace.SetImportCompletionOption(false);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public void Test()
+        {
+            VisualStudio.Workspace.SetImportCompletionOption(true);
+
+            SetUpEditor(@"
+class Class1
+{
+    void M(string s)
+    {
+        s.
+    }
+}");
+
+            var libProject = new ProjectUtils.Project("NetStandardLib");
+            var libProjectReference = new ProjectUtils.ProjectReference(libProject.Name);
+            VisualStudio.SolutionExplorer.AddProject(libProject, WellKnownProjectTemplates.CSharpNetStandardClassLibrary, LanguageNames.CSharp);
+            VisualStudio.Editor.SetText(@"
+namespace MyNamespace
+{
+    public static class ExtClass
+    {
+        public static bool MyStringExtensionMethod(string x) => false;
+    }
+}");
+
+            VisualStudio.SolutionExplorer.SaveAll();
+            var project = new ProjectUtils.Project(ProjectName);
+            VisualStudio.SolutionExplorer.AddProjectReference(fromProjectName: project, toProjectName: libProjectReference);
+            VisualStudio.SolutionExplorer.OpenFile(project, "Class1.cs");
+
+            VisualStudio.Editor.SendKeys(".");
+            VisualStudio.Editor.Verify.CompletionItemsExist("MyStringExtensionMethod");
         }
 
         [WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Completion)]

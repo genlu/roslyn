@@ -59,10 +59,12 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.OutOfProcess
         public void CleanUpWaitingService()
             => _inProc.CleanUpWaitingService();
 
-        public void SetImportCompletionOption(bool value)
+        public void SetImportCompletionOption(bool value, bool forceIndexCreation = true)
         {
             SetGlobalOption(WellKnownGlobalOption.CompletionOptions_ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, value);
             SetGlobalOption(WellKnownGlobalOption.CompletionOptions_ShowItemsFromUnimportedNamespaces, LanguageNames.VisualBasic, value);
+
+            SetGlobalOption(WellKnownGlobalOption.CompletionOptions_ForceExpandedCompletionIndexCreation, null, forceIndexCreation);
         }
 
         public void SetEnableDecompilationOption(bool value)
