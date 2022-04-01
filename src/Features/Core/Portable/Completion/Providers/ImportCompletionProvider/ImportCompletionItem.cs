@@ -23,6 +23,11 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         private const string ReceiverKey = nameof(ReceiverKey);
         private const string OverloadCountKey = nameof(OverloadCountKey);
 
+        // Make sure expanded items are listed after non-expanded ones. Note that in our ItemManager at async-completion layer,
+        // we implicitly rely on this behavior when combining delayed expanded items list with non-expanded items (to avoid sorting again).
+        // If this changed, we need to make sure to sort items properly in ItemManager.
+        private static readonly CompletionItemRules DefaultImportCompletionItemRules = CompletionItemRules.Default.WithSortPriority(SortPriority.Low);
+
         public static CompletionItem Create(
             string name,
             int arity,
@@ -70,7 +75,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                  sortText: sortTextBuilder.ToStringAndFree(),
                  properties: properties,
                  tags: GlyphTags.GetTags(glyph),
-                 rules: CompletionItemRules.Default,
+                 rules: DefaultImportCompletionItemRules,
                  displayTextPrefix: null,
                  displayTextSuffix: arity == 0 ? string.Empty : genericTypeSuffix,
                  inlineDescription: containingNamespace,

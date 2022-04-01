@@ -6,28 +6,6 @@ using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.Completion
 {
-    public enum CompletionItemSelectionBehavior
-    {
-        Default,
-
-        /// <summary>
-        /// If no text has been typed, the item should be soft selected. This is appropriate for 
-        /// completion providers that want to provide suggestions that shouldn't interfere with 
-        /// typing.  For example a provider that comes up on space might offer items that are soft
-        /// selected so that an additional space (or other puntuation character) will not then 
-        /// commit that item.
-        /// </summary>
-        SoftSelection,
-
-        /// <summary>
-        /// If no text has been typed, the item should be hard selected.  This is appropriate for
-        /// completion providers that are providing suggestions the user is nearly certain to 
-        /// select.  Because the item is hard selected, any commit characters typed after it will
-        /// cause it to be committed.
-        /// </summary>
-        HardSelection,
-    }
-
     /// <summary>
     /// Rules for how the individual items are handled.
     /// </summary>
@@ -36,13 +14,14 @@ namespace Microsoft.CodeAnalysis.Completion
         /// <summary>
         /// The rule used when no rule is specified when constructing a <see cref="CompletionItem"/>.
         /// </summary>
-        public static CompletionItemRules Default =
+        public static readonly CompletionItemRules Default =
             new(
                 filterCharacterRules: default,
                 commitCharacterRules: default,
                 enterKeyRule: EnterKeyRule.Default,
                 formatOnCommit: false,
                 matchPriority: Completion.MatchPriority.Default,
+                sortPriority: Completion.SortPriority.Default,
                 selectionBehavior: CompletionItemSelectionBehavior.Default);
 
         /// <summary>
@@ -66,9 +45,16 @@ namespace Microsoft.CodeAnalysis.Completion
         public bool FormatOnCommit { get; }
 
         /// <summary>
-        /// True if the related completion item should be initially selected.
+        /// An additional hint to the selection algorithm that can augment or override the existing text-based matching.
+        /// Refer to <see cref="Completion.MatchPriority"/> for preset values.
         /// </summary>
         public int MatchPriority { get; }
+
+        /// <summary>
+        /// An additional hint to the sorting algorithm that takes precedence over text-based sorting.
+        /// Refer to <see cref="Completion.SortPriority"/> for preset values.
+        /// </summary>
+        public int SortPriority { get; }
 
         /// <summary>
         /// How this item should be selected when the completion list first appears and
@@ -82,6 +68,7 @@ namespace Microsoft.CodeAnalysis.Completion
             EnterKeyRule enterKeyRule,
             bool formatOnCommit,
             int matchPriority,
+            int sortPriority,
             CompletionItemSelectionBehavior selectionBehavior)
         {
             FilterCharacterRules = filterCharacterRules.NullToEmpty();
@@ -89,6 +76,7 @@ namespace Microsoft.CodeAnalysis.Completion
             EnterKeyRule = enterKeyRule;
             FormatOnCommit = formatOnCommit;
             MatchPriority = matchPriority;
+            SortPriority = sortPriority;
             SelectionBehavior = selectionBehavior;
         }
 
@@ -111,6 +99,7 @@ namespace Microsoft.CodeAnalysis.Completion
             return Create(
                 filterCharacterRules, commitCharacterRules,
                 enterKeyRule, formatOnCommit, matchPriority,
+                sortPriority: Completion.SortPriority.Default,
                 selectionBehavior: CompletionItemSelectionBehavior.Default);
         }
 
@@ -130,6 +119,7 @@ namespace Microsoft.CodeAnalysis.Completion
             EnterKeyRule enterKeyRule = EnterKeyRule.Default,
             bool formatOnCommit = false,
             int? matchPriority = null,
+            int? sortPriority = null,
             CompletionItemSelectionBehavior selectionBehavior = CompletionItemSelectionBehavior.Default)
         {
             if (filterCharacterRules.IsDefaultOrEmpty &&
@@ -137,6 +127,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 enterKeyRule == Default.EnterKeyRule &&
                 formatOnCommit == Default.FormatOnCommit &&
                 matchPriority.GetValueOrDefault() == Default.MatchPriority &&
+                sortPriority.GetValueOrDefault() == Default.SortPriority &&
                 selectionBehavior == Default.SelectionBehavior)
             {
                 return Default;
@@ -145,7 +136,7 @@ namespace Microsoft.CodeAnalysis.Completion
             {
                 return new CompletionItemRules(
                     filterCharacterRules, commitCharacterRules, enterKeyRule, formatOnCommit,
-                    matchPriority.GetValueOrDefault(), selectionBehavior);
+                    matchPriority.GetValueOrDefault(), sortPriority.GetValueOrDefault(), selectionBehavior);
             }
         }
 
@@ -175,6 +166,7 @@ namespace Microsoft.CodeAnalysis.Completion
             Optional<EnterKeyRule> enterKeyRule = default,
             Optional<bool> formatOnCommit = default,
             Optional<int> matchPriority = default,
+            Optional<int> sortPriority = default,
             Optional<CompletionItemSelectionBehavior> selectionBehavior = default)
         {
             var newFilterRules = filterRules.HasValue ? filterRules.Value : FilterCharacterRules;
@@ -182,6 +174,7 @@ namespace Microsoft.CodeAnalysis.Completion
             var newEnterKeyRule = enterKeyRule.HasValue ? enterKeyRule.Value : EnterKeyRule;
             var newFormatOnCommit = formatOnCommit.HasValue ? formatOnCommit.Value : FormatOnCommit;
             var newMatchPriority = matchPriority.HasValue ? matchPriority.Value : MatchPriority;
+            var newSortPriority = sortPriority.HasValue ? sortPriority.Value : SortPriority;
             var newSelectionBehavior = selectionBehavior.HasValue ? selectionBehavior.Value : SelectionBehavior;
 
             if (newFilterRules == FilterCharacterRules &&
@@ -189,6 +182,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 newEnterKeyRule == EnterKeyRule &&
                 newFormatOnCommit == FormatOnCommit &&
                 newMatchPriority == MatchPriority &&
+                newSortPriority == SortPriority &&
                 newSelectionBehavior == SelectionBehavior)
             {
                 return this;
@@ -198,7 +192,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 return Create(
                     newFilterRules, newCommitRules,
                     newEnterKeyRule, newFormatOnCommit,
-                    newMatchPriority, newSelectionBehavior);
+                    newMatchPriority, newSortPriority, newSelectionBehavior);
             }
         }
 
@@ -237,6 +231,12 @@ namespace Microsoft.CodeAnalysis.Completion
         /// </summary>
         public CompletionItemRules WithMatchPriority(int matchPriority)
             => With(matchPriority: matchPriority);
+
+        /// <summary>
+        /// Creates a copy of this <see cref="CompletionItemRules"/> with the <see cref="SortPriority"/> property changed.
+        /// </summary>
+        public CompletionItemRules WithSortPriority(int sortPriority)
+            => With(sortPriority: sortPriority);
 
         /// <summary>
         /// Creates a copy of this <see cref="CompletionItemRules"/> with the <see cref="SelectionBehavior"/> property changed.

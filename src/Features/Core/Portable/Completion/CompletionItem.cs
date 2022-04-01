@@ -404,15 +404,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 return 1;
             }
 
-            // Make sure expanded items are listed after non-expanded ones.
-            // Note that in our ItemManager at async-completion layer, we implicitly
-            // rely on this behavior when combining delayed expanded items list with 
-            // non-expanded items (to avoid sorting again). if this changed, we need
-            // to make sure to sort items properly in ItemManager.
-            var thisIsExpandItem = Flags.IsExpanded();
-            var otherIsExpandItem = other.Flags.IsExpanded();
-
-            if (thisIsExpandItem == otherIsExpandItem)
+            if (Rules.SortPriority == other.Rules.SortPriority)
             {
                 var result = StringComparer.OrdinalIgnoreCase.Compare(SortText, other.SortText);
                 if (result == 0)
@@ -422,7 +414,7 @@ namespace Microsoft.CodeAnalysis.Completion
 
                 return result;
             }
-            else if (thisIsExpandItem)
+            else if (Rules.SortPriority < other.Rules.SortPriority)
             {
                 return 1;
             }
