@@ -3,11 +3,14 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Options;
@@ -15,6 +18,7 @@ using Microsoft.CodeAnalysis.PatternMatching;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Completion
 {
@@ -216,38 +220,35 @@ namespace Microsoft.CodeAnalysis.Completion
             string filterText)
         {
             var helper = CompletionHelper.GetHelper(document);
-            return FilterItems(helper, items, filterText);
+
+            var itemsWithPatternMatch = items.SelectAsArray(
+                item => (item, helper.GetMatch(item.FilterText, filterText, includeMatchSpans: false, CultureInfo.CurrentCulture)));
+
+            var builder = ImmutableArray.CreateBuilder<CompletionItem>();
+            FilterItems(helper, itemsWithPatternMatch, filterText, builder);
+            return builder.MoveToImmutable();
         }
 
-        internal virtual ImmutableArray<CompletionItem> FilterItems(
+        internal virtual void FilterItems(
            Document document,
-           ImmutableArray<(CompletionItem, PatternMatch?)> itemsWithPatternMatch,
-           string filterText)
+           IReadOnlyList<(CompletionItem, PatternMatch?)> itemsWithPatternMatch,
+           string filterText,
+           IList<CompletionItem> filteredItemsBuilder)
         {
             // Default implementation just drops the pattern matches and
             // calls the public overload of FilterItems for compatibility.
-            return FilterItems(document, itemsWithPatternMatch.SelectAsArray(item => item.Item1), filterText);
-        }
-
-        internal static ImmutableArray<CompletionItem> FilterItems(
-            CompletionHelper completionHelper,
-            ImmutableArray<CompletionItem> items,
-            string filterText)
-        {
-            var itemsWithPatternMatch = items.SelectAsArray(
-                item => (item, completionHelper.GetMatch(item.FilterText, filterText, includeMatchSpans: false, CultureInfo.CurrentCulture)));
-
-            return FilterItems(completionHelper, itemsWithPatternMatch, filterText);
+            filteredItemsBuilder.AddRange(FilterItems(document, itemsWithPatternMatch.SelectAsArray(item => item.Item1), filterText));
         }
 
         /// <summary>
         /// Determine among the provided items the best match w.r.t. the given filter text, 
         /// those returned would be considered equally good candidates for selection by controller.
         /// </summary>
-        internal static ImmutableArray<CompletionItem> FilterItems(
+        internal static void FilterItems(
             CompletionHelper completionHelper,
-            ImmutableArray<(CompletionItem item, PatternMatch? match)> itemsWithPatternMatch,
-            string filterText)
+            IReadOnlyList<(CompletionItem item, PatternMatch? match)> itemsWithPatternMatch,
+            string filterText,
+            IList<CompletionItem> filteredItemsBuilder)
         {
             // It's very common for people to type expecting completion to fix up their casing,
             // so if no uppercase characters were typed so far, we'd loosen our standard on comparing items
@@ -267,12 +268,12 @@ namespace Microsoft.CodeAnalysis.Completion
 
             // Keep track the highest MatchPriority of all items in the best list.
             var highestMatchPriorityInBest = int.MinValue;
-            using var _1 = ArrayBuilder<(CompletionItem item, PatternMatch? match)>.GetInstance(out var bestItems);
+            var bestItems = new SegmentedList<(CompletionItem item, PatternMatch? match)>();
 
             // This contains a list of items that are considered equally good match as bestItems except casing,
             // and they have higher MatchPriority than the ones in bestItems (although as a perf optimization we don't
             // actually guarantee this during the process, instead we check the MatchPriority again after the loop.)
-            using var _2 = ArrayBuilder<(CompletionItem item, PatternMatch? match)>.GetInstance(out var itemsWithCasingMismatchButHigherMatchPriority);
+            var itemsWithCasingMismatchButHigherMatchPriority = new SegmentedList<(CompletionItem item, PatternMatch? match)>();
 
             foreach (var pair in itemsWithPatternMatch)
             {
@@ -284,7 +285,7 @@ namespace Microsoft.CodeAnalysis.Completion
                     continue;
                 }
 
-                var (bestItem, bestItemMatch) = bestItems.First();
+                var (bestItem, bestItemMatch) = bestItems[0];
                 var comparison = completionHelper.CompareItems(
                     pair.item, pair.match, bestItem, bestItemMatch, out var onlyDifferInCaseSensitivity);
 
@@ -302,13 +303,14 @@ namespace Microsoft.CodeAnalysis.Completion
                     // This item is strictly better than the best items we've found so far.
                     // However, if it's only better in terms of case-sensitivity, we'd like 
                     // to save the prior best items and consider their MatchPriority later.
-                    itemsWithCasingMismatchButHigherMatchPriority.Clear();
 
-                    if (filterTextContainsNoUpperLetters &&
-                        onlyDifferInCaseSensitivity &&
-                        highestMatchPriorityInBest > pair.item.Rules.MatchPriority) // don't add if this item has higher MatchPriority than all prior best items
+                    (bestItems, itemsWithCasingMismatchButHigherMatchPriority) = (itemsWithCasingMismatchButHigherMatchPriority, bestItems);
+
+                    if (!filterTextContainsNoUpperLetters ||
+                        !onlyDifferInCaseSensitivity ||
+                        highestMatchPriorityInBest <= pair.item.Rules.MatchPriority)
                     {
-                        itemsWithCasingMismatchButHigherMatchPriority.AddRange(bestItems);
+                        itemsWithCasingMismatchButHigherMatchPriority.Clear();
                     }
 
                     bestItems.Clear();
@@ -338,7 +340,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 }
             }
 
-            return bestItems.ToImmutable().SelectAsArray(itemWithPatternMatch => itemWithPatternMatch.item);
+            filteredItemsBuilder.AddRange(bestItems.Select(itemWithPatternMatch => itemWithPatternMatch.item));
         }
     }
 }

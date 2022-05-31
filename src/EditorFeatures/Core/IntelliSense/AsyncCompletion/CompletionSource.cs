@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -197,13 +197,13 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
                 return false;
             }
 
-            var syntaxFactsOpt = document.GetLanguageService<ISyntaxFactsService>();
+            var syntaxFacts = document.GetLanguageService<ISyntaxFactsService>();
             // Snippets are included if the user types: <quesiton><tab>
             // If at least one condition for snippets do not hold, bail out.
-            if (syntaxFactsOpt == null ||
+            if (syntaxFacts == null ||
                 caretPoint < 3 ||
                 text[caretPoint - 2] != '?' ||
-                !QuestionMarkIsPrecededByIdentifierAndWhitespace(text, caretPoint - 2, syntaxFactsOpt))
+                !QuestionMarkIsPrecededByIdentifierAndWhitespace(text, caretPoint - 2, syntaxFacts))
             {
                 return false;
             }
@@ -477,7 +477,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
             // If there are suggestionItemOptions, then later HandleNormalFiltering should set selection to SoftSelection.
             sessionData.HasSuggestionItemOptions |= completionList.SuggestionModeItem != null;
 
-            var excludedCommitCharacters = GetExcludedCommitCharacters(completionList.Items);
+            var excludedCommitCharacters = GetExcludedCommitCharacters(completionList.ItemsInternal);
             if (excludedCommitCharacters.Length > 0)
             {
                 if (session.Properties.TryGetProperty(ExcludedCommitCharacters, out ImmutableArray<char> excludedCommitCharactersBefore))
@@ -561,7 +561,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
         {
             VSCompletionItemData itemData;
 
-            if (roslynItem.Flags.IsCached() && s_roslynItemToVsItemData.TryGetValue(roslynItem, out var boxedItemData))
+            if (CompletionItemFlagsHelper.IsCached(roslynItem.Flags) && s_roslynItemToVsItemData.TryGetValue(roslynItem, out var boxedItemData))
             {
                 itemData = boxedItemData.Value;
                 filterSet.CombineData(itemData.FilterSetData);
@@ -592,7 +592,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
 
                 // It doesn't make sense to cache VS item data for those Roslyn items created from scratch for each session,
                 // since CWT uses object identity for comparison.
-                if (roslynItem.Flags.IsCached())
+                if (CompletionItemFlagsHelper.IsCached(roslynItem.Flags))
                 {
                     s_roslynItemToVsItemData.Add(roslynItem, new StrongBox<VSCompletionItemData>(itemData));
                 }
@@ -614,7 +614,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
             return item;
         }
 
-        private static ImmutableArray<char> GetExcludedCommitCharacters(ImmutableArray<RoslynCompletionItem> roslynItems)
+        private static ImmutableArray<char> GetExcludedCommitCharacters(IReadOnlyList<RoslynCompletionItem> roslynItems)
         {
             var hashSet = new HashSet<char>();
             foreach (var roslynItem in roslynItems)

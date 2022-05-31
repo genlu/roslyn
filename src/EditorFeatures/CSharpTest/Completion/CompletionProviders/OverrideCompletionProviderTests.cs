@@ -2372,7 +2372,7 @@ End Class
 
             var service = GetCompletionService(document.Project);
             var completionList = await GetCompletionListAsync(service, document, position, triggerInfo);
-            var completionItem = completionList.Items.First(i => CompareItems(i.DisplayText, "Bar[int bay]"));
+            var completionItem = completionList.ItemsInternal.First(i => CompareItems(i.DisplayText, "Bar[int bay]"));
 
             if (service.GetProvider(completionItem) is ICustomCommitCompletionProvider customCommitCompletionProvider)
             {
@@ -2629,7 +2629,7 @@ int bar;
 
             var service = GetCompletionService(document.Project);
             var completionList = await GetCompletionListAsync(service, document, position, triggerInfo);
-            var completionItem = completionList.Items.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
+            var completionItem = completionList.ItemsInternal.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
 
             if (service.GetProvider(completionItem) is ICustomCommitCompletionProvider customCommitCompletionProvider)
             {
@@ -2685,7 +2685,7 @@ int bar;
 
             var service = GetCompletionService(document.Project);
             var completionList = await GetCompletionListAsync(service, document, cursorPosition, triggerInfo);
-            var completionItem = completionList.Items.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
+            var completionItem = completionList.ItemsInternal.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
 
             if (service.GetProvider(completionItem) is ICustomCommitCompletionProvider customCommitCompletionProvider)
             {
@@ -2788,7 +2788,7 @@ namespace ConsoleApplication46
 
             var oldTree = await document.GetSyntaxTreeAsync();
 
-            var commit = await provider.GetChangeAsync(document, completionList.Items.First(i => i.DisplayText == "ToString()"), ' ');
+            var commit = await provider.GetChangeAsync(document, completionList.ItemsInternal.First(i => i.DisplayText == "ToString()"), ' ');
             var change = commit.TextChange;
 
             // If we left the trailing trivia of the close curly of Main alone,
@@ -2924,8 +2924,8 @@ namespace ClassLibrary7
             Contract.ThrowIfNull(testDocument.CursorPosition);
             var completionList = await GetCompletionListAsync(service, document, testDocument.CursorPosition.Value, CompletionTrigger.Invoke);
 
-            Assert.True(completionList.Items.Any(c => c.DisplayText == "Bar()"));
-            Assert.False(completionList.Items.Any(c => c.DisplayText == "Goo()"));
+            Assert.True(completionList.ItemsInternal.Any(c => c.DisplayText == "Bar()"));
+            Assert.False(completionList.ItemsInternal.Any(c => c.DisplayText == "Goo()"));
         }
 
         [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -2977,7 +2977,7 @@ public class SomeClass : Base
 
             Contract.ThrowIfNull(testDocument.CursorPosition);
             var completionList = await GetCompletionListAsync(service, document, testDocument.CursorPosition.Value, CompletionTrigger.Invoke);
-            var completionItem = completionList.Items.Where(c => c.DisplayText == "M(in int x)").Single();
+            var completionItem = completionList.ItemsInternal.Where(c => c.DisplayText == "M(in int x)").Single();
 
             var commit = await service.GetChangeAsync(document, completionItem, commitKey: null, CancellationToken.None);
 
